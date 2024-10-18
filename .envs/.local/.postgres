@@ -1,0 +1,7 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=palpal
+POSTGRES_USER=QtmUZARQmMPydfQQaLKmRojQswftiMea
+POSTGRES_PASSWORD=52vmkOpVIrDMiRsQQV1FUHuhxjuwscM8oVk8PHKlU3q6Zg8d0hlfxDBNoFVmofp6
