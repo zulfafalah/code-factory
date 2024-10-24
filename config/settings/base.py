@@ -325,6 +325,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -344,3 +345,25 @@ SPECTACULAR_SETTINGS = {
 }
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+SITE_URL = "http://localhost:8000"
+
+
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "live.smtp.mailtrap.io"
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_USE_SSL = False
+# EMAIL_HOST_USER = "api"  # Email Anda
+# EMAIL_HOST_PASSWORD = "lceiskcvqiallkdw"  # App Password dari Google  # noqa: S105
+
+EMAIL_HOST = "live.smtp.mailtrap.io"
+EMAIL_HOST_USER = "api"
+EMAIL_HOST_PASSWORD = "337d4c460b0d3ee777057f7fdd1a4696"
+EMAIL_PORT = "587"
+
+# Tambahkan ini untuk debugging email
+EMAIL_DEBUG = True
+
+EMAIL_USE_SSL = False
+EMAIL_TIMEOUT = 30
