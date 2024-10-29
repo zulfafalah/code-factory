@@ -349,21 +349,9 @@ SPECTACULAR_SETTINGS = {
 SITE_URL = "http://localhost:8000"
 
 
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "live.smtp.mailtrap.io"
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_USE_SSL = False
-# EMAIL_HOST_USER = "api"  # Email Anda
-# EMAIL_HOST_PASSWORD = "lceiskcvqiallkdw"  # App Password dari Google  # noqa: S105
-
-EMAIL_HOST = "live.smtp.mailtrap.io"
-EMAIL_HOST_USER = "api"
-EMAIL_HOST_PASSWORD = "337d4c460b0d3ee777057f7fdd1a4696"
-EMAIL_PORT = "587"
-
-# Tambahkan ini untuk debugging email
-EMAIL_DEBUG = True
-
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = env("EMAIL_PORT")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-EMAIL_TIMEOUT = 30

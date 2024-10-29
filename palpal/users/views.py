@@ -1,11 +1,16 @@
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.mail import send_mail
 from django.db.models import QuerySet
+from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.encoding import force_bytes
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView
 from django.views.generic import RedirectView
@@ -19,6 +24,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from palpal.users.models import User
 
+from .serializers import ForgotPasswordSerializer
+from .serializers import ResetPasswordSerializer
 from .serializers import UserLoginSerializer
 from .serializers import UserRegistrationSerializer
 
@@ -92,7 +99,7 @@ def register_user(request):
         user = serializer.save()
         return Response(
             {
-                "message": "Registration successful. Please check your email to verify your account."
+                "message": "Registration successful. Please check your email to verify your account.",
             },
             status=status.HTTP_201_CREATED,
         )
@@ -117,3 +124,86 @@ def verify_email(request, uidb64, token):
             {"error": "Invalid verification link"}, status=status.HTTP_400_BAD_REQUEST
         )
 
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    serializer = ForgotPasswordSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data["email"]
+        try:
+            user = User.objects.get(email=email)
+
+            # Generate password reset token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            # Create reset password URL
+            reset_url = f"{settings.SITE_URL}/users/reset-password/{uid}/{token}/"
+
+            # Prepare email content
+            context = {
+                "user": user,
+                "reset_url": reset_url,
+            }
+
+            message = render_to_string("email/reset_password_email.html", context)
+
+            # Send email
+            send_mail(
+                "Reset Your Password",
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                html_message=message,
+            )
+
+            return Response(
+                {
+                    "message": "Password reset instructions have been sent to your email."
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except User.DoesNotExist:
+            # For security reasons, we return the same message even if the email doesn't exist
+            return Response(
+                {
+                    "message": "Password reset instructions have been sent to your email if the account exists."
+                },
+                status=status.HTTP_200_OK,
+            )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def reset_password(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+
+        if default_token_generator.check_token(user, token):
+            serializer = ResetPasswordSerializer(data=request.data)
+
+            if serializer.is_valid():
+                # Set new password
+                user.set_password(serializer.validated_data["password"])
+                user.save()
+
+                return Response(
+                    {"message": "Password has been reset successfully."},
+                    status=status.HTTP_200_OK,
+                )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"error": "Invalid reset link"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return Response(
+            {"error": "Invalid reset link"}, status=status.HTTP_400_BAD_REQUEST
+        )
+    
