@@ -1,7 +1,9 @@
 from django.urls import path
 
+from .views import forgot_password
 from .views import login_user
 from .views import register_user
+from .views import reset_password
 from .views import user_detail_view
 from .views import user_redirect_view
 from .views import user_update_view
@@ -18,5 +20,11 @@ urlpatterns = [
         "verify-email/<str:uidb64>/<str:token>/",
         verify_email,
         name="verify-email",
+    ),
+    path("forgot-password/", view=forgot_password, name="forgot-password"),
+    path(
+        "reset-password/<str:uidb64>/<str:token>/",
+        reset_password,
+        name="reset-password",
     ),
 ]

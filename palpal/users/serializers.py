@@ -1,11 +1,11 @@
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from django.conf import settings
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from rest_framework import serializers
 
 User = get_user_model()
 
@@ -20,7 +20,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if data["password"] != data["password_confirmation"]:
-            raise serializers.ValidationError("Passwords don't match")
+            msg = "Passwords don't match"
+            raise serializers.ValidationError(msg)
         return data
 
     def create(self, validated_data):
@@ -57,3 +58,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+    password_confirmation = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data["password"] != data["password_confirmation"]:
+            msg = "Passwords don't match"
+            raise serializers.ValidationError(msg)
+        return data
