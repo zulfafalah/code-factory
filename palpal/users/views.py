@@ -83,7 +83,7 @@ def login_user(request):
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
                     "user": {"id": user.id, "email": user.email, "name": user.name},
-                }
+                },
             )
         return Response(
             {"error": "Invalid credentials or account not verified"},
@@ -91,19 +91,21 @@ def login_user(request):
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register_user(request):
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
-        user = serializer.save()
+        serializer.save()
         return Response(
             {
-                "message": "Registration successful. Please check your email to verify your account.",
+                "message": "Registration successful. Please check your email to verify your account.",  # noqa: E501
             },
             status=status.HTTP_201_CREATED,
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -117,11 +119,13 @@ def verify_email(request, uidb64, token):
             user.save()
             return Response({"message": "Email verified successfully"})
         return Response(
-            {"error": "Invalid verification link"}, status=status.HTTP_400_BAD_REQUEST
+            {"error": "Invalid verification link"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         return Response(
-            {"error": "Invalid verification link"}, status=status.HTTP_400_BAD_REQUEST
+            {"error": "Invalid verification link"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
 
@@ -160,16 +164,17 @@ def forgot_password(request):
 
             return Response(
                 {
-                    "message": "Password reset instructions have been sent to your email."
+                    "message": "Password reset instructions have been sent to your email.",  # noqa: E501
                 },
                 status=status.HTTP_200_OK,
             )
 
         except User.DoesNotExist:
-            # For security reasons, we return the same message even if the email doesn't exist
+            # For security reasons, we return the same message even if the email doesn't exist #noqa: E501
             return Response(
                 {
-                    "message": "Password reset instructions have been sent to your email if the account exists."
+                    "message": "Password reset instructions have been sent to"
+                    "your email if the account exists.",
                 },
                 status=status.HTTP_200_OK,
             )
@@ -199,11 +204,12 @@ def reset_password(request, uidb64, token):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
-            {"error": "Invalid reset link"}, status=status.HTTP_400_BAD_REQUEST
+            {"error": "Invalid reset link"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         return Response(
-            {"error": "Invalid reset link"}, status=status.HTTP_400_BAD_REQUEST
+            {"error": "Invalid reset link"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
-    
