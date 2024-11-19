@@ -21,7 +21,7 @@ services:
     ports:
       - '8000:8000'
       - '587:587'
-      
+
     command: /start
 
   postgres:
@@ -39,30 +39,30 @@ services:
   redis:
     image: docker.io/redis:6
     container_name: palpal_local_redis
-    
+
     volumes:
       - palpal_local_redis_data:/data
-    
 
-  celeryworker:
-    <<: *django
-    image: palpal_local_celeryworker
-    container_name: palpal_local_celeryworker
-    depends_on:
-      - redis
-      - postgres
-    ports: []
-    command: /start-celeryworker
 
-  celerybeat:
-    <<: *django
-    image: palpal_local_celerybeat
-    container_name: palpal_local_celerybeat
-    depends_on:
-      - redis
-      - postgres
-    ports: []
-    command: /start-celerybeat
+  # celeryworker:
+  #   <<: *django
+  #   image: palpal_local_celeryworker
+  #   container_name: palpal_local_celeryworker
+  #   depends_on:
+  #     - redis
+  #     - postgres
+  #   ports: []
+  #   command: /start-celeryworker
+
+  # celerybeat:
+  #   <<: *django
+  #   image: palpal_local_celerybeat
+  #   container_name: palpal_local_celerybeat
+  #   depends_on:
+  #     - redis
+  #     - postgres
+  #   ports: []
+  #   command: /start-celerybeat
 
   flower:
     <<: *django
