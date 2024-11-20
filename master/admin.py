@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import Item, ItemGroup, Tag, Category, Cookie
+
+from .models import Category
+from .models import Cookie
+from .models import Item
+from .models import ItemGroup
+from .models import Tag
 
 admin.site.register(Item)
 admin.site.register(ItemGroup)
