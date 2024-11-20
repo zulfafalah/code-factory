@@ -55,7 +55,11 @@ class ItemGroup(TimeStampedModel):
     group_name = models.CharField(_("Group Name"), max_length=255)
     description = models.TextField(_("Description"))
     icon = models.ImageField(
-        _("Icon"), upload_to=None, height_field=None, width_field=None, max_length=None
+        _("Icon"),
+        upload_to="item-group",
+        height_field=None,
+        width_field=None,
+        max_length=None,
     )
     slug = models.SlugField(_("Slug"))
     category = models.ForeignKey(
