@@ -68,11 +68,10 @@ class ItemGroup(TimeStampedModel):
         related_name="category",
         verbose_name=_("Category"),
     )
-    tag = models.ForeignKey(
-        Tag,
-        on_delete=models.PROTECT,
-        related_name="tag",
-        verbose_name=_("Tag"),
+    tags = models.ManyToManyField(
+        Tag, 
+        related_name="item_groups",
+        verbose_name=_("Tags"),
     )
     cookie = models.ForeignKey(
         Cookie,
