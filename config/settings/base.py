@@ -87,7 +87,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "palpal.users",
     "master",
-    # Your stuff: custom apps go here
+    "sales",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
