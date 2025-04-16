@@ -27,30 +27,6 @@ class Tag(TimeStampedModel):
         return self.tag_name
 
 
-class Category(TimeStampedModel):
-    category_name = models.CharField(_("Category Name"), max_length=100)
-
-    class Meta:
-        verbose_name = _("Category")
-        verbose_name_plural = _("Categories")
-        ordering = ["category_name"]
-
-    def __str__(self):
-        return self.category_name
-
-
-class Cookie(TimeStampedModel):
-    cookie_data = models.JSONField(_("Cookie Data"), default=dict)
-
-    class Meta:
-        verbose_name = _("Cookie")
-        verbose_name_plural = _("Cookies")
-        ordering = ["cookie_data"]
-
-    def __str__(self):
-        return str(self.cookie_data)
-
-
 class ItemGroup(TimeStampedModel):
     group_name = models.CharField(_("Group Name"), max_length=255)
     description = models.TextField(_("Description"))
@@ -61,24 +37,13 @@ class ItemGroup(TimeStampedModel):
         width_field=None,
         max_length=None,
     )
-    slug = models.SlugField(_("Slug"))
-    category = models.ForeignKey(
-        Category,
-        on_delete=models.PROTECT,
-        related_name="category",
-        verbose_name=_("Category"),
-    )
+    slug = models.SlugField(_("Slug"), null=True, blank=True)
     tags = models.ManyToManyField(
         Tag, 
         related_name="item_groups",
         verbose_name=_("Tags"),
     )
-    cookie = models.ForeignKey(
-        Cookie,
-        on_delete=models.PROTECT,
-        related_name="cookie",
-        verbose_name=_("Cookie"),
-    )
+    cookie_data = models.JSONField(_("Cookie Data"), default=dict)
 
     class Meta:
         verbose_name = _("Item Group")
