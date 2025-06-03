@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import YouTubeMP3
@@ -9,19 +8,27 @@ from .models import YouTubeMP3
 
 @admin.register(YouTubeMP3)
 class YouTubeMP3Admin(admin.ModelAdmin):
+    # Constants for display text truncation
+    URL_DISPLAY_LENGTH = 50
+    URL_TRUNCATE_LENGTH = 47
+    TITLE_DISPLAY_LENGTH = 40
+    TITLE_TRUNCATE_LENGTH = 37
+
     list_display = [
         "video_url_short",
         "video_title_short",
         "download_status",
         "file_size_display",
+        "file_exists_status",
+        "download_link",
         "created_at",
-        "updated_at",
     ]
     list_filter = ["download_status", "created_at"]
     search_fields = ["video_url", "video_title"]
     readonly_fields = [
         "video_title",
         "file_name",
+        "file_path",
         "file_size",
         "error_message",
         "created_at",
@@ -39,7 +46,13 @@ class YouTubeMP3Admin(admin.ModelAdmin):
         (
             "Download Details",
             {
-                "fields": ("video_title", "file_name", "file_size", "error_message"),
+                "fields": (
+                    "video_title",
+                    "file_name",
+                    "file_path",
+                    "file_size",
+                    "error_message",
+                ),
                 "classes": ("collapse",),
             },
         ),
@@ -53,8 +66,8 @@ class YouTubeMP3Admin(admin.ModelAdmin):
 
     def video_url_short(self, obj):
         """Display shortened URL for better readability"""
-        if len(obj.video_url) > 50:
-            return obj.video_url[:47] + "..."
+        if len(obj.video_url) > self.URL_DISPLAY_LENGTH:
+            return obj.video_url[: self.URL_TRUNCATE_LENGTH] + "..."
         return obj.video_url
 
     video_url_short.short_description = "Video URL"
@@ -62,8 +75,8 @@ class YouTubeMP3Admin(admin.ModelAdmin):
     def video_title_short(self, obj):
         """Display shortened title for better readability"""
         if obj.video_title:
-            if len(obj.video_title) > 40:
-                return obj.video_title[:37] + "..."
+            if len(obj.video_title) > self.TITLE_DISPLAY_LENGTH:
+                return obj.video_title[: self.TITLE_TRUNCATE_LENGTH] + "..."
             return obj.video_title
         return "-"
 
@@ -77,56 +90,126 @@ class YouTubeMP3Admin(admin.ModelAdmin):
 
     file_size_display.short_description = "File Size"
 
-    # def action_buttons(self, obj):
-    #     """Display action buttons for each record"""
-    #     if obj.download_status == 'pending':
-    #         return format_html(
-    #             '<button onclick="startDownload({})" style="background-color: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Start Download</button>',
-    #             obj.id
-    #         )
-    #     elif obj.download_status == 'failed':
-    #         return format_html(
-    #             '<button onclick="retryDownload({})" style="background-color: #ffc107; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Retry</button>',
-    #             obj.id
-    #         )
-    #     return '-'
-    # action_buttons.short_description = 'Actions'
+    def download_link(self, obj):
+        """Display download link for completed files"""
+        if obj.is_downloadable:
+            try:
+                download_url = obj.get_download_url()
+                if download_url:
+                    return format_html(
+                        '<a href="{}" target="_blank" class="button">Download MP3</a>',
+                        download_url,
+                    )
+            except (ImportError, AttributeError, ValueError):
+                # If URL generation fails, show error status
+                return format_html(
+                    '<span style="color: red;">URL Error</span>',
+                )
+        if obj.download_status == "completed" and obj.file_path:
+            return format_html(
+                '<span style="color: red;">File not found</span>',
+            )
+        if obj.download_status == "failed":
+            return format_html(
+                '<span style="color: orange;">Download failed</span>',
+            )
+        if obj.download_status == "in_progress":
+            return format_html(
+                '<span style="color: blue;">Downloading...</span>',
+            )
+        return format_html(
+            '<span style="color: gray;">Not ready</span>',
+        )
 
-    # def start_download_action(self, request, queryset):
-    #     """Admin action to start downloads for selected items"""
-    #     count = 0
-    #     for youtube_mp3 in queryset:
-    #         if youtube_mp3.download_status == 'pending':
-    #             try:
-    #                 youtube_mp3.start_download()
-    #                 count += 1
-    #             except ValueError:
-    #                 pass
+    download_link.short_description = "Download"
+    download_link.allow_tags = True
 
-    #     if count:
-    #         self.message_user(request, f"Started {count} downloads.")
-    #     else:
-    #         self.message_user(request, "No pending downloads found in selection.")
-    # start_download_action.short_description = "Start download for selected items"
+    def start_download_action(self, request, queryset):
+        """Admin action to start download for selected items"""
+        started_count = 0
+        error_count = 0
 
-    # def retry_failed_downloads(self, request, queryset):
-    #     """Admin action to retry failed downloads"""
-    #     count = 0
-    #     for youtube_mp3 in queryset.filter(download_status='failed'):
-    #         youtube_mp3.download_status = 'pending'
-    #         youtube_mp3.error_message = None
-    #         youtube_mp3.save()
-    #         try:
-    #             youtube_mp3.start_download()
-    #             count += 1
-    #         except ValueError:
-    #             pass
+        for obj in queryset:
+            try:
+                if obj.download_status == "pending":
+                    obj.start_download()
+                    started_count += 1
+                elif obj.download_status == "failed":
+                    obj.download_status = "pending"
+                    obj.error_message = ""
+                    obj.save()
+                    obj.start_download()
+                    started_count += 1
+            except ValueError:
+                error_count += 1
 
-    #     if count:
-    #         self.message_user(request, f"Retried {count} failed downloads.")
-    #     else:
-    #         self.message_user(request, "No failed downloads found in selection.")
-    # retry_failed_downloads.short_description = "Retry failed downloads"
+        if started_count > 0:
+            self.message_user(
+                request,
+                f"Started download for {started_count} items.",
+            )
+        if error_count > 0:
+            self.message_user(
+                request,
+                f"Failed to start download for {error_count} items.",
+                level="ERROR",
+            )
 
-    # class Media:
-    #     js = ('admin/js/youtube_mp3_admin.js',)
+    start_download_action.short_description = "Start download for selected items"
+
+    def retry_failed_downloads(self, request, queryset):
+        """Admin action to retry failed downloads"""
+        failed_items = queryset.filter(download_status="failed")
+        retry_count = 0
+
+        for obj in failed_items:
+            try:
+                obj.download_status = "pending"
+                obj.error_message = ""
+                obj.save()
+                obj.start_download()
+                retry_count += 1
+            except ValueError:
+                # Log the error but continue with other items
+                continue
+
+        if retry_count > 0:
+            self.message_user(
+                request,
+                f"Retrying download for {retry_count} failed items.",
+            )
+        else:
+            self.message_user(
+                request,
+                "No failed downloads found in selection.",
+                level="WARNING",
+            )
+
+    retry_failed_downloads.short_description = "Retry failed downloads"
+
+    def file_path_display(self, obj):
+        """Display file path with proper formatting"""
+        if obj.file_path:
+            # Show only the filename for better readability
+            from pathlib import Path
+
+            return Path(obj.file_path).name
+        return "-"
+
+    file_path_display.short_description = "File Name"
+
+    def file_exists_status(self, obj):
+        """Check if the downloaded file exists"""
+        if obj.file_path:
+            from pathlib import Path
+
+            if Path(obj.file_path).exists():
+                return format_html(
+                    '<span style="color: green;">✓ Exists</span>',
+                )
+            return format_html(
+                '<span style="color: red;">✗ Missing</span>',
+            )
+        return "-"
+
+    file_exists_status.short_description = "File Status"

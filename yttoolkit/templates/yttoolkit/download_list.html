@@ -61,6 +61,17 @@
         .btn:hover {
             background: #0056b3;
         }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            text-decoration: none;
+            color: white;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .btn-small:hover {
+            background: #218838 !important;
+        }
         .messages {
             margin-bottom: 20px;
         }
@@ -174,6 +185,7 @@
                         <th>File Size</th>
                         <th>Created</th>
                         <th>Updated</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -199,6 +211,21 @@
                         </td>
                         <td>{{ download.created_at|date:"M d, Y H:i" }}</td>
                         <td>{{ download.updated_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            {% if download.is_downloadable %}
+                                <a href="{% url 'yttoolkit:download_file' download.id %}" 
+                                   class="btn btn-small" 
+                                   style="background: #28a745; padding: 6px 12px; font-size: 12px;">
+                                    📥 Download
+                                </a>
+                            {% elif download.download_status == 'failed' %}
+                                <span style="color: #dc3545; font-size: 12px;">❌ Failed</span>
+                            {% elif download.download_status == 'in_progress' %}
+                                <span style="color: #007bff; font-size: 12px;">⏳ Processing</span>
+                            {% else %}
+                                <span style="color: #6c757d; font-size: 12px;">⏳ Pending</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
