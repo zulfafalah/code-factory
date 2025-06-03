@@ -24,6 +24,7 @@ urlpatterns = [
     path("users/", include("palpal.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
+    path("yttoolkit/", include("yttoolkit.urls", namespace="yttoolkit")),
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
