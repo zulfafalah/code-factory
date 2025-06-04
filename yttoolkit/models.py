@@ -105,5 +105,5 @@ class YouTubeMP3(models.Model):
         if self.is_downloadable:
             from django.urls import reverse
 
-            return reverse("yttoolkit:download_file", kwargs={"download_id": self.id})
+            return reverse("api:yttoolkit/mp3-download", kwargs={"pk": self.id})
         return None
