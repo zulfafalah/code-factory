@@ -2,6 +2,7 @@
 from .base import *  # noqa: F403
 from .base import INSTALLED_APPS
 from .base import MIDDLEWARE
+from .base import SPECTACULAR_SETTINGS
 from .base import env
 
 # GENERAL
@@ -34,7 +35,8 @@ CACHES = {
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 EMAIL_BACKEND = env(
-    "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend",
+    "DJANGO_EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
 )
 
 # WhiteNoise
@@ -71,9 +73,17 @@ if env("USE_DOCKER") == "yes":
 # ------------------------------------------------------------------------------
 # https://django-extensions.readthedocs.io/en/latest/installation_instructions.html#configuration
 INSTALLED_APPS += ["django_extensions"]
+
+# DRF Spectacular - Override for development
+# ------------------------------------------------------------------------------
+# Allow any user to access API docs in development
+SPECTACULAR_SETTINGS = {
+    **SPECTACULAR_SETTINGS,  # Import base settings
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+}
+
 # Celery
 # ------------------------------------------------------------------------------
-
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-eager-propagates
 CELERY_TASK_EAGER_PROPAGATES = True
 # Your stuff...
