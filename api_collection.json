@@ -1,0 +1,600 @@
+{
+	"info": {
+		"_postman_id": "f8b7c3d2-4e1f-4a2b-9c8d-1e2f3a4b5c6d",
+		"name": "YouTube MP3 Toolkit - DRF API",
+		"description": "Collection for YouTube MP3 Toolkit Django REST Framework API endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Downloads Management",
+			"description": "Endpoints for managing YouTube MP3 downloads",
+			"item": [
+				{
+					"name": "List All Downloads",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/downloads/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"downloads",
+								""
+							]
+						},
+						"description": "Get a list of all YouTube MP3 downloads ordered by creation date (newest first)"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/downloads/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"downloads",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n  {\n    \"id\": 1,\n    \"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n    \"video_title\": \"Rick Astley - Never Gonna Give You Up\",\n    \"download_status\": \"completed\",\n    \"file_name\": \"Rick Astley - Never Gonna Give You Up.mp3\",\n    \"file_size\": 3456789,\n    \"file_size_mb\": 3.29,\n    \"error_message\": null,\n    \"created_at\": \"2025-06-04T10:00:00Z\",\n    \"updated_at\": \"2025-06-04T10:02:30Z\",\n    \"is_downloadable\": true,\n    \"download_url\": \"/download/1/\"\n  }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Download Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/downloads/{{download_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"downloads",
+								"{{download_id}}",
+								""
+							]
+						},
+						"description": "Get details of a specific YouTube MP3 download by ID"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/downloads/1/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"downloads",
+										"1",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"id\": 1,\n  \"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"video_title\": \"Rick Astley - Never Gonna Give You Up\",\n  \"download_status\": \"completed\",\n  \"file_name\": \"Rick Astley - Never Gonna Give You Up.mp3\",\n  \"file_size\": 3456789,\n  \"file_size_mb\": 3.29,\n  \"error_message\": null,\n  \"created_at\": \"2025-06-04T10:00:00Z\",\n  \"updated_at\": \"2025-06-04T10:02:30Z\",\n  \"is_downloadable\": true,\n  \"download_url\": \"/download/1/\"\n}"
+						},
+						{
+							"name": "Not Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/downloads/999/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"downloads",
+										"999",
+										""
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"detail\": \"Not found.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Download MP3 File",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "audio/mpeg"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/downloads/{{download_id}}/download/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"downloads",
+								"{{download_id}}",
+								"download",
+								""
+							]
+						},
+						"description": "Download the actual MP3 file. This endpoint returns the MP3 file as binary data."
+					},
+					"response": [
+						{
+							"name": "File Download Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "audio/mpeg"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/downloads/1/download/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"downloads",
+										"1",
+										"download",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "audio/mpeg"
+								},
+								{
+									"key": "Content-Disposition",
+									"value": "attachment; filename=\"Rick Astley - Never Gonna Give You Up.mp3\""
+								},
+								{
+									"key": "Content-Length",
+									"value": "3456789"
+								}
+							],
+							"cookie": [],
+							"body": "[Binary MP3 data]"
+						},
+						{
+							"name": "File Not Ready",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "audio/mpeg"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/downloads/1/download/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"downloads",
+										"1",
+										"download",
+										""
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"error\": \"File not found or not ready for download\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Download Operations",
+			"description": "Endpoints for starting and monitoring downloads",
+			"item": [
+				{
+					"name": "Start New Download",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/start/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"start",
+								""
+							]
+						},
+						"description": "Start a new YouTube MP3 download. Provide a valid YouTube URL in the request body."
+					},
+					"response": [
+						{
+							"name": "Download Started Successfully",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/start/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"start",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"message\": \"Download started successfully\",\n  \"task_id\": \"abc123-def456-ghi789\",\n  \"download_id\": 1,\n  \"status\": \"pending\"\n}"
+						},
+						{
+							"name": "Download Already Exists",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/start/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"start",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": false,\n  \"message\": \"Download already exists with status: completed\",\n  \"download_id\": 1,\n  \"status\": \"completed\"\n}"
+						},
+						{
+							"name": "Invalid URL",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"video_url\": \"invalid-url\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/start/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"start",
+										""
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"video_url\": [\n    \"Invalid URL: Must start with 'http' or 'https'\"\n  ]\n}"
+						},
+						{
+							"name": "Missing URL",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/start/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"start",
+										""
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"video_url\": [\n    \"This field is required.\"\n  ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Download Status (Legacy)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/status/{{download_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"status",
+								"{{download_id}}",
+								""
+							]
+						},
+						"description": "Get download status - legacy endpoint for backward compatibility. Same response as Get Download Details but different endpoint."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/status/1/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"status",
+										"1",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"id\": 1,\n  \"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"video_title\": \"Rick Astley - Never Gonna Give You Up\",\n  \"download_status\": \"completed\",\n  \"file_name\": \"Rick Astley - Never Gonna Give You Up.mp3\",\n  \"file_size\": 3456789,\n  \"file_size_mb\": 3.29,\n  \"error_message\": null,\n  \"created_at\": \"2025-06-04T10:00:00Z\",\n  \"updated_at\": \"2025-06-04T10:02:30Z\",\n  \"is_downloadable\": true,\n  \"download_url\": \"/download/1/\"\n}"
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string",
+			"description": "Base URL for the YouTube MP3 Toolkit API"
+		},
+		{
+			"key": "download_id",
+			"value": "1",
+			"type": "string",
+			"description": "ID of the download to retrieve/operate on"
+		}
+	]
+}
