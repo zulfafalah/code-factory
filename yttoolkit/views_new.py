@@ -1,15 +1,12 @@
-import json
 from pathlib import Path
 
 from django.contrib import messages
 from django.http import Http404
 from django.http import HttpResponse
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from drf_spectacular.utils import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework import viewsets
@@ -257,6 +254,11 @@ class LegacyDownloadStatusAPIView(APIView):
 
 
 # Legacy function-based views for backward compatibility
+import json
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 
 @csrf_exempt
