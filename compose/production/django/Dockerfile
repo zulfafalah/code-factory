@@ -94,6 +94,12 @@ USER django
 RUN DATABASE_URL="" \
   CELERY_BROKER_URL="" \
   DJANGO_SETTINGS_MODULE="config.settings.test" \
+  EMAIL_HOST="localhost" \
+  EMAIL_PORT="25" \
+  EMAIL_HOST_USER="" \
+  EMAIL_HOST_PASSWORD="" \
+  EMAIL_USE_TLS="False" \
+  EMAIL_USE_SSL="False" \
   python manage.py compilemessages
 
 ENTRYPOINT ["/entrypoint"]
