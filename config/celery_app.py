@@ -3,7 +3,11 @@ import os
 from celery import Celery
 
 # set the default Django settings module for the 'celery' program.
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
+
+if os.environ.get("DJANGO_SETTINGS_MODULE") == "config.settings.local":
+    from config.settings.local import *  # noqa: F403, F401
+if os.environ.get("DJANGO_SETTINGS_MODULE") == "config.settings.production":
+    from config.settings.production import *  # noqa: F403, F401
 
 app = Celery("palpal")
 
