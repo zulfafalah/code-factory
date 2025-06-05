@@ -5,14 +5,10 @@ entryPoints:
   web:
     # http
     address: ':80'
-    http:
-      # https://doc.traefik.io/traefik/routing/entrypoints/#entrypoint
-      redirections:
-        entryPoint:
-          to: web-secure
+    # Removed HTTPS redirect for IP-based access
 
   web-secure:
-    # https
+    # https (can be used for HTTP when no TLS)
     address: ':443'
 
   flower:
@@ -30,35 +26,38 @@ certificatesResolvers:
 
 http:
   routers:
+    web-router:
+      rule: 'Host(`159.223.48.89`)'
+      entryPoints:
+        - web
+      middlewares:
+        - csrf
+      service: django
+
     web-secure-router:
-      rule: 'Host(`palpal.com`) || Host(`www.palpal.com`)'
+      rule: 'Host(`159.223.48.89`)'
       entryPoints:
         - web-secure
       middlewares:
         - csrf
       service: django
-      tls:
-        # https://doc.traefik.io/traefik/routing/routers/#certresolver
-        certResolver: letsencrypt
+      # Removed TLS for IP-based access
 
     flower-secure-router:
-      rule: 'Host(`palpal.com`)'
+      rule: 'Host(`159.223.48.89`)'
       entryPoints:
         - flower
       service: flower
-      tls:
-        # https://doc.traefik.io/traefik/master/routing/routers/#certresolver
-        certResolver: letsencrypt
+      # Removed TLS for IP-based access
 
     web-media-router:
-      rule: '(Host(`palpal.com`) || Host(`www.palpal.com`)) && PathPrefix(`/media/`)'
+      rule: 'Host(`159.223.48.89`) && PathPrefix(`/media/`)'
       entryPoints:
         - web-secure
       middlewares:
         - csrf
       service: django-media
-      tls:
-        certResolver: letsencrypt
+      # Removed TLS for IP-based access
 
   middlewares:
     csrf:
