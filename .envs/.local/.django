@@ -2,6 +2,17 @@
 # ------------------------------------------------------------------------------
 USE_DOCKER=yes
 IPYTHONDIR=/app/.ipython
+
+# Email
+# ------------------------------------------------------------------------------
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST_USER=noreplay.caridata@gmail.com
+EMAIL_HOST_PASSWORD=wvle moeg sked wmmq
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+
 # Redis
 # ------------------------------------------------------------------------------
 REDIS_URL=redis://redis:6379/0
@@ -12,10 +23,3 @@ REDIS_URL=redis://redis:6379/0
 # Flower
 CELERY_FLOWER_USER=kVpUqguDjtZtzODCQkxrtbfSwXwRlCNi
 CELERY_FLOWER_PASSWORD=YUaTsGAwyXy7RMT3Rb4JJ2TTOFQN78DblRtu0xBiqmWE8JOWY5MxsfllJmBISKoh
-
-
-DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST_USER=noreplay.caridata@gmail.com
-EMAIL_HOST_PASSWORD=wvle moeg sked wmmq
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
