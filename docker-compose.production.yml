@@ -24,7 +24,7 @@ services:
       - ./.envs/.production/.postgres
     command: /start
     ports:
-      - '127.0.0.1:8001:5000'
+      - '127.0.0.1:8000:5000'
 
   postgres:
     build:
@@ -52,6 +52,8 @@ services:
     <<: *django
     image: palpal_production_celerybeat
     command: /start-celerybeat
+    ports:
+      - '127.0.0.1:8001:5000'
 
   flower:
     <<: *django
