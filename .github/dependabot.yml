@@ -75,13 +75,6 @@ updates:
       interval: 'daily'
 
   - package-ecosystem: 'docker'
-    # Look for a `Dockerfile` in the `compose/production/traefik` directory
-    directory: 'compose/production/traefik/'
-    # Every weekday
-    schedule:
-      interval: 'daily'
-
-  - package-ecosystem: 'docker'
     # Look for a `Dockerfile` in the `compose/production/nginx` directory
     directory: 'compose/production/nginx/'
     # Every weekday
