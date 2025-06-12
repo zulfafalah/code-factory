@@ -24,7 +24,7 @@ services:
       - ./.envs/.production/.postgres
     command: /start
     ports:
-      - '127.0.0.1:8000:5000'
+      - '127.0.0.1:8000:8000'
 
   postgres:
     build:
@@ -44,20 +44,51 @@ services:
 
 
   celeryworker:
-    <<: *django
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
     image: palpal_production_celeryworker
+    volumes:
+      - production_django_media:/app/palpal/media
+      - /var/www/palpal/media:/app/palpal/media
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
     command: /start-celeryworker
 
   celerybeat:
-    <<: *django
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
     image: palpal_production_celerybeat
+    volumes:
+      - production_django_media:/app/palpal/media
+      - /var/www/palpal/media:/app/palpal/media
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
     command: /start-celerybeat
-    ports:
-      - '127.0.0.1:8001:5000'
 
   flower:
-    <<: *django
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
     image: palpal_production_flower
+    volumes:
+      - production_django_media:/app/palpal/media
+      - /var/www/palpal/media:/app/palpal/media
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
     command: /start-flower
     ports:
       - '127.0.0.1:5555:5555'
