@@ -23,12 +23,7 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["palpal.com", "159.223
 # CSRF
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
-CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[
-    "http://159.223.48.89",
-    "https://159.223.48.89",
-    "https://palpal.com",
-    "http://palpal.com"
-])
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=["159.223.48.89", "palpal.com"])
 
 # DATABASES
 # ------------------------------------------------------------------------------
