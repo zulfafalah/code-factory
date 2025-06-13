@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 
 
 class YouTubeMP3(models.Model):
@@ -48,7 +48,8 @@ class YouTubeMP3(models.Model):
         # If this is a new instance and status is pending, automatically start download
         if is_new and self.download_status == "pending":
             try:
-                self.start_download()
+                # Use transaction.on_commit to ensure the instance is saved before starting the task
+                transaction.on_commit(lambda: self.start_download())
             except Exception as e:
                 # Log the error but don't raise it to prevent save from failing
                 self.error_message = f"Failed to start download: {str(e)}"
@@ -68,8 +69,8 @@ class YouTubeMP3(models.Model):
             # Use update_fields to avoid triggering save recursion
             super().save(update_fields=["download_status", "updated_at"])
 
-            # Start the Celery task
-            task = download_youtube_mp3.delay(self.id)
+            # Start the Celery task with a small delay to ensure database consistency
+            task = download_youtube_mp3.apply_async(args=[self.id], countdown=2)
             return task
         else:
             raise ValueError(
