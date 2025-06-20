@@ -6,251 +6,93 @@ from pathlib import Path
 import yt_dlp
 from celery import shared_task
 from django.conf import settings
+from django.utils import timezone
 
 from .models import YouTubeMP3
 
 
 def get_youtube_cookies():
     """
-    Get YouTube cookies for authentication.
+    Get YouTube cookies for authentication from the database.
     Returns cookie data in the format expected by yt-dlp.
 
-    You can also set cookies via environment variables for production:
-    - YOUTUBE_COOKIES_JSON: JSON string containing cookie data
+    Fallback options:
+    1. Database (Cookie model with application='youtube')
+    2. Environment variable YOUTUBE_COOKIES_JSON
+    3. Empty list (no authentication)
     """
-    # Check if cookies are provided via environment variable (recommended for production)
+    try:
+        # Import here to avoid circular imports
+        from master.models import Cookie
+
+        # Get active YouTube cookies from database
+        youtube_cookies = Cookie.objects.filter(
+            application='youtube',
+            is_active=True
+        ).exclude(
+            expires_at__lt=timezone.now()  # Exclude expired cookies
+        ).order_by('-created_at').first()  # Get the most recent one
+
+        if youtube_cookies and youtube_cookies.cookie_data:
+            # Extract cookie data from the model
+            cookies_data = youtube_cookies.cookie_data
+
+            # Handle both list and dict formats
+            if isinstance(cookies_data, dict):
+                # If it's a single cookie object, convert to list
+                cookies_data = [cookies_data]
+            elif not isinstance(cookies_data, list):
+                # If it's neither list nor dict, skip to fallback
+                cookies_data = []
+
+            # Convert to a simpler format for easier processing
+            simplified_cookies = []
+            for cookie in cookies_data:
+                if isinstance(cookie, dict) and 'name' in cookie and 'value' in cookie:
+                    simplified_cookie = {
+                        'name': cookie['name'],
+                        'value': cookie['value'],
+                        'domain': cookie.get('domain', '.youtube.com'),
+                        'path': cookie.get('path', '/'),
+                        'secure': cookie.get('secure', True),
+                        'httponly': cookie.get('httpOnly', False),
+                        'expires': cookie.get('expirationDate', cookie.get('expires'))
+                    }
+                    simplified_cookies.append(simplified_cookie)
+
+            if simplified_cookies:
+                print(f"Using {len(simplified_cookies)} YouTube cookies from database")
+                return simplified_cookies
+
+    except Exception as e:
+        print(f"Error loading cookies from database: {e}")
+
+    # Check if cookies are provided via environment variable (fallback)
     env_cookies = os.environ.get('YOUTUBE_COOKIES_JSON')
     if env_cookies:
         try:
-            return json.loads(env_cookies)
+            cookies_data = json.loads(env_cookies)
+            if isinstance(cookies_data, list):
+                simplified_cookies = []
+                for cookie in cookies_data:
+                    simplified_cookie = {
+                        'name': cookie['name'],
+                        'value': cookie['value'],
+                        'domain': cookie.get('domain', '.youtube.com'),
+                        'path': cookie.get('path', '/'),
+                        'secure': cookie.get('secure', True),
+                        'httponly': cookie.get('httpOnly', False),
+                        'expires': cookie.get('expirationDate', cookie.get('expires'))
+                    }
+                    simplified_cookies.append(simplified_cookie)
+                print(f"Using {len(simplified_cookies)} YouTube cookies from environment variable")
+                return simplified_cookies
         except json.JSONDecodeError:
-            pass  # Fall back to hardcoded cookies
+            print("Invalid JSON format in YOUTUBE_COOKIES_JSON environment variable")
 
-    # Hardcoded cookies (update these when they expire)
-    cookies_data = [
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701944,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "__Secure-3PSID",
-            "path": "/",
-            "sameSite": "no_restriction",
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "g.a000xwjJulgh1pYw7DGAa3xt0FvyJYAnELY_QLPV82yAl_mXPGrHqMDrp6W_cO6V3ozBsR0vCgACgYKAd4SARYSFQHGX2MiOLcQhA-0FOUnpVASpbFodBoVAUF8yKqb-79DU9BGdjb6685uUMV00076"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1781316693.220718,
-            "hostOnly": False,
-            "httpOnly": False,
-            "name": "SIDCC",
-            "path": "/",
-            "sameSite": None,
-            "secure": False,
-            "session": False,
-            "storeId": None,
-            "value": "AKEyXzVboJOeH_7tSSPCMg8HO0pgov-Oy7fUNMT1E7RzJZMt3Y7Og06XWkjd2Yjk0mZGF8Bc"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701774,
-            "hostOnly": False,
-            "httpOnly": False,
-            "name": "SID",
-            "path": "/",
-            "sameSite": None,
-            "secure": False,
-            "session": False,
-            "storeId": None,
-            "value": "g.a000xwjJulgh1pYw7DGAa3xt0FvyJYAnELY_QLPV82yAl_mXPGrHOz72bVaNHoSlIC3pKAU0ZgACgYKAZ8SARYSFQHGX2MiPNtLZwhIsAcg1EqGaoacLBoVAUF8yKqubiRATS7IXQdquxk8hKyz0076"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1781316693.220115,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "__Secure-1PSIDTS",
-            "path": "/",
-            "sameSite": None,
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "sidts-CjEB5H03P35OVl4mVtCkiDckmbNOyqO4RAGn4DmLhPS6nOwmXomA9YWkGG7yGw0CLyiNEAA"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701483,
-            "hostOnly": False,
-            "httpOnly": False,
-            "name": "SAPISID",
-            "path": "/",
-            "sameSite": None,
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "OMds_al9HduG6JVO/AblHifgcTLteaayX5"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1781316693.220892,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "__Secure-1PSIDCC",
-            "path": "/",
-            "sameSite": None,
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "AKEyXzVRsSLVleorbyLoTfiYmmE4J-VJJYYTYpWVPLxJyq5BtgsOKH28KcnnZrFmfZ8MUs2i"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701336,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "SSID",
-            "path": "/",
-            "sameSite": None,
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "AF7kq19DRizzF6e83"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701581,
-            "hostOnly": False,
-            "httpOnly": False,
-            "name": "__Secure-1PAPISID",
-            "path": "/",
-            "sameSite": None,
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "OMds_al9HduG6JVO/AblHifgcTLteaayX5"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701873,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "__Secure-1PSID",
-            "path": "/",
-            "sameSite": None,
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "g.a000xwjJulgh1pYw7DGAa3xt0FvyJYAnELY_QLPV82yAl_mXPGrH1p-BfT_kpzAgdCUX-YWRdAACgYKAUsSARYSFQHGX2MiljmyDkUSYc969KDfa9rjEhoVAUF8yKpl1R8vZ6xLLq3RDYw_3GNj0076"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701661,
-            "hostOnly": False,
-            "httpOnly": False,
-            "name": "__Secure-3PAPISID",
-            "path": "/",
-            "sameSite": "no_restriction",
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "OMds_al9HduG6JVO/AblHifgcTLteaayX5"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1781316693.221045,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "__Secure-3PSIDCC",
-            "path": "/",
-            "sameSite": "no_restriction",
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "AKEyXzWZ-wUunjR2YlBtR8aa7XmnfEw4JIhu_oMP5nyqz2tlYANZG8Lcg9tldLuHB8x0Ch7P"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1781316693.220506,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "__Secure-3PSIDTS",
-            "path": "/",
-            "sameSite": "no_restriction",
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "sidts-CjEB5H03P35OVl4mVtCkiDckmbNOyqO4RAGn4DmLhPS6nOwmXomA9YWkGG7yGw0CLyiNEAA"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701395,
-            "hostOnly": False,
-            "httpOnly": False,
-            "name": "APISID",
-            "path": "/",
-            "sameSite": None,
-            "secure": False,
-            "session": False,
-            "storeId": None,
-            "value": "Tva2Xe0XpPyU4sRu/AQ-j65j_pausFMNq0"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784281987.701275,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "HSID",
-            "path": "/",
-            "sameSite": None,
-            "secure": False,
-            "session": False,
-            "storeId": None,
-            "value": "AnQL8aECJYmmkRN52"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784282009.594806,
-            "hostOnly": False,
-            "httpOnly": True,
-            "name": "LOGIN_INFO",
-            "path": "/",
-            "sameSite": "no_restriction",
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "AFmmF2swRAIgV9z75b2sao_9A1EsHtlCjIVyLXoUjj_ZIX8peMl1xPMCIEpf0ngV_e6kavJlPv4L_U0CNuCRv8OrFuTFs3FyPjcX:QUQ3MjNmeG5zRnBXS0ZMTVlkRGs0ZWR0NlJzYnAyU0h5YmpsVmFZOU1uU3EyclFpaXF2S2YzRmxvWUk5bHJDMXBDN3lwaFpQeFF4UDR1WDVhbUNodXJ6TVFXbHF2NVFqRktxTWdrNVVBOW9waThzeERQS2d1NmI3Z2p3TFBIY3JQQ2Q0V01uaDBoYnBLOUhad1lmMkNyYWlpMllkUVVFMlVB"
-        },
-        {
-            "domain": ".youtube.com",
-            "expirationDate": 1784282242.049034,
-            "hostOnly": False,
-            "httpOnly": False,
-            "name": "PREF",
-            "path": "/",
-            "sameSite": None,
-            "secure": True,
-            "session": False,
-            "storeId": None,
-            "value": "f6=40000000&tz=Asia.Jakarta&f7=100"
-        }
-    ]    # Convert to a simpler format for easier processing
-    simplified_cookies = []
-    for cookie in cookies_data:
-        simplified_cookie = {
-            'name': cookie['name'],
-            'value': cookie['value'],
-            'domain': cookie['domain'],
-            'path': cookie['path'],
-            'secure': cookie['secure'],
-            'httponly': cookie.get('httpOnly', False),
-            'expires': cookie.get('expirationDate')
-        }
-        simplified_cookies.append(simplified_cookie)
-
-    return simplified_cookies
+    # No cookies available - return empty list
+    print("No YouTube cookies available - proceeding without authentication")
+    return []
 
 
 def create_cookie_file(temp_dir):
