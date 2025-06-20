@@ -60,7 +60,6 @@ class Cookie(TimeStampedModel):
     is_active = models.BooleanField(_("Is Active"), default=True)
     user_agent = models.TextField(_("User Agent"), blank=True, null=True)
     domain = models.CharField(_("Domain"), max_length=255, blank=True, null=True)
-    expires_at = models.DateTimeField(_("Expires At"), blank=True, null=True)
 
     class Meta:
         verbose_name = _("Cookie")
