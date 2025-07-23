@@ -165,8 +165,18 @@ def download_youtube_mp3(self, youtube_mp3_id):
 
         # Create a temporary directory for downloads
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create cookie file for YouTube authentication
-            cookie_file_path = create_cookie_file(temp_dir)
+            # Try to use cookies.txt from /tmp folder first, fallback to hardcoded cookies
+            external_cookie_path = "/tmp/cookies.txt"
+            cookie_file_path = None
+
+            if os.path.exists(external_cookie_path):
+                # Use existing cookies.txt from /tmp
+                cookie_file_path = external_cookie_path
+                logger.info(f"Using external cookie file: {external_cookie_path}")
+            else:
+                # Fallback to creating temporary cookie file with hardcoded cookies
+                cookie_file_path = create_cookie_file(temp_dir)
+                logger.warning(f"External cookie file not found at {external_cookie_path}, using hardcoded cookies")
 
             # Configure yt-dlp options with cookies
             ydl_opts = {
@@ -189,7 +199,7 @@ def download_youtube_mp3(self, youtube_mp3_id):
                 }
             }
 
-            # Add cookie file if it was created successfully
+            # Add cookie file if it was found or created successfully
             if cookie_file_path:
                 ydl_opts["cookiefile"] = cookie_file_path
 
