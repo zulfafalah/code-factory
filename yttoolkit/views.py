@@ -1,6 +1,8 @@
 from pathlib import Path
+import logging
 
 from django.http import HttpResponse
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework import viewsets
@@ -13,6 +15,9 @@ from .models import YouTubeMP3
 from .serializers import DownloadStartResponseSerializer
 from .serializers import YouTubeMP3CreateSerializer
 from .serializers import YouTubeMP3Serializer
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class YouTubeMP3ViewSet(viewsets.ReadOnlyModelViewSet):
@@ -147,4 +152,300 @@ class DownloadStartAPIView(APIView):
             return Response(
                 {"error": f"Unexpected error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class CookieRefreshAPIView(APIView):
+    """
+    API endpoint to refresh YouTube cookies for authentication.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Refresh YouTube cookies",
+        description="Trigger a background task to refresh YouTube cookies for authentication",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "cookie_file": {
+                        "type": "string",
+                        "description": "Path to cookies.txt file (optional)"
+                    },
+                    "use_chromium": {
+                        "type": "boolean",
+                        "description": "Use Chromium browser instead of Chrome (default: false)"
+                    },
+                    "sync": {
+                        "type": "boolean",
+                        "description": "Run synchronously without Celery (default: false)"
+                    },
+                    "test_only": {
+                        "type": "boolean",
+                        "description": "Only test existing cookies without refreshing (default: false)"
+                    }
+                }
+            }
+        },
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "task_id": {"type": "string"},
+                    "cookie_file": {"type": "string"},
+                    "test_passed": {"type": "boolean"},
+                    "auth_test_passed": {"type": "boolean"}
+                }
+            },
+            400: {"description": "Bad request"},
+            500: {"description": "Internal server error"}
+        }
+    )
+    def post(self, request):
+        """
+        Refresh YouTube cookies via POST request.
+        """
+        try:
+            # Get parameters from request
+            cookie_file = request.data.get('cookie_file')
+            use_chromium = request.data.get('use_chromium', False)
+            sync_mode = request.data.get('sync', False)
+            test_only = request.data.get('test_only', False)
+
+            # Determine cookie file path
+            if not cookie_file:
+                cookie_file = getattr(settings, 'YOUTUBE_COOKIES_PATH', '/tmp/cookies.txt')
+
+            logger.info(f"Cookie refresh requested: file={cookie_file}, chromium={use_chromium}, sync={sync_mode}, test_only={test_only}")
+
+            if test_only:
+                return self._test_cookies_only(cookie_file)
+
+            if sync_mode:
+                return self._run_sync(cookie_file, use_chromium)
+            else:
+                return self._run_async(cookie_file, use_chromium)
+
+        except Exception as e:
+            logger.error(f"Error in cookie refresh API: {str(e)}", exc_info=True)
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Cookie refresh failed: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _test_cookies_only(self, cookie_file):
+        """Test existing cookies without refreshing"""
+        try:
+            from .refresh_cookie import test_cookies, test_authenticated_access
+            import os
+
+            if not os.path.exists(cookie_file):
+                return Response(
+                    {
+                        "success": False,
+                        "error": f"Cookie file {cookie_file} not found!"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Test basic functionality
+            test_result = test_cookies(cookie_file)
+
+            # Test authenticated access
+            auth_result = test_authenticated_access(cookie_file)
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Cookie testing completed",
+                    "cookie_file": cookie_file,
+                    "test_passed": test_result,
+                    "auth_test_passed": auth_result,
+                    "overall_status": "passed" if (test_result and auth_result) else "failed"
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except ImportError as e:
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Could not import refresh_cookie module: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Error testing cookies: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _run_sync(self, cookie_file, use_chromium):
+        """Run cookie refresh synchronously"""
+        try:
+            from .refresh_cookie import (
+                update_cookies,
+                test_cookies,
+                test_authenticated_access,
+                clean_expired_cookies
+            )
+            import os
+
+            # Check if cookie file exists
+            if not os.path.exists(cookie_file):
+                # Create empty cookie file if it doesn't exist
+                os.makedirs(os.path.dirname(cookie_file), exist_ok=True)
+                with open(cookie_file, 'w') as f:
+                    f.write("# Netscape HTTP Cookie File\n")
+                    f.write("# Generated by cookie refresh API\n\n")
+                logger.info(f"Created new cookie file: {cookie_file}")
+
+            # Clean expired cookies first
+            clean_expired_cookies(cookie_file)
+
+            # Refresh cookies
+            refresh_result = update_cookies(cookie_file, use_chromium)
+
+            if not refresh_result:
+                return Response(
+                    {
+                        "success": False,
+                        "error": "Cookie refresh failed!"
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            # Test the refreshed cookies
+            test_result = test_cookies(cookie_file)
+            auth_result = test_authenticated_access(cookie_file)
+
+            # Final cleanup
+            clean_expired_cookies(cookie_file)
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Cookies refreshed successfully (synchronous)",
+                    "cookie_file": cookie_file,
+                    "test_passed": test_result,
+                    "auth_test_passed": auth_result,
+                    "browser_used": "chromium" if use_chromium else "chrome"
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except ImportError as e:
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Could not import refresh_cookie module: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Error during cookie refresh: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _run_async(self, cookie_file, use_chromium):
+        """Run cookie refresh using Celery task"""
+        try:
+            from .tasks import refresh_youtube_cookies
+
+            # Start the Celery task
+            result = refresh_youtube_cookies.delay(cookie_file, use_chromium)
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Cookie refresh task scheduled successfully",
+                    "task_id": result.id,
+                    "cookie_file": cookie_file,
+                    "browser_used": "chromium" if use_chromium else "chrome",
+                    "note": "Task is running in background. Check task status using task_id."
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except ImportError as e:
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Could not import Celery task: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Error scheduling async task: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Get cookie refresh status",
+        description="Get information about cookie file and authentication status",
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "cookie_file": {"type": "string"},
+                    "exists": {"type": "boolean"},
+                    "file_size": {"type": "integer"},
+                    "last_modified": {"type": "string"}
+                }
+            }
+        }
+    )
+    def get(self, request):
+        """
+        Get cookie status information.
+        """
+        try:
+            import os
+            from datetime import datetime
+
+            cookie_file = request.query_params.get('cookie_file')
+            if not cookie_file:
+                cookie_file = getattr(settings, 'YOUTUBE_COOKIES_PATH', '/tmp/cookies.txt')
+
+            file_info = {
+                "cookie_file": cookie_file,
+                "exists": os.path.exists(cookie_file)
+            }
+
+            if file_info["exists"]:
+                stat = os.stat(cookie_file)
+                file_info["file_size"] = stat.st_size
+                file_info["last_modified"] = datetime.fromtimestamp(stat.st_mtime).isoformat()
+
+                # Count cookies
+                try:
+                    with open(cookie_file, 'r') as f:
+                        lines = f.readlines()
+                    cookie_count = len([line for line in lines if line.strip() and not line.startswith('#')])
+                    file_info["cookie_count"] = cookie_count
+                except Exception:
+                    file_info["cookie_count"] = "unknown"
+
+            return Response(file_info, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": f"Error getting cookie status: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
