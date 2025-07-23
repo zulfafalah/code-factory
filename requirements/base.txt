@@ -28,3 +28,7 @@ drf-spectacular==0.27.2  # https://github.com/tfranzel/drf-spectacular
 
 # yt toolkit
 yt-dlp==2025.5.22
+
+# selenium and webdriver-manager
+selenium==4.33.0
+webdriver-manager==4.0.2
