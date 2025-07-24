@@ -91,6 +91,11 @@ COPY --chown=django:django . ${APP_HOME}
 # make django owner of the WORKDIR directory as well.
 RUN chown -R django:django ${APP_HOME}
 
+# Create media directories with proper permissions
+RUN mkdir -p ${APP_HOME}/palpal/media/yttoolkit \
+    && chown -R django:django ${APP_HOME}/palpal/media \
+    && chmod -R 755 ${APP_HOME}/palpal/media
+
 USER django
 
 RUN DATABASE_URL="" \
