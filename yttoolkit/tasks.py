@@ -15,126 +15,6 @@ from .models import YouTubeMP3
 # Set up logging
 logger = logging.getLogger(__name__)
 
-
-def get_youtube_cookies():
-    """
-    Get YouTube cookies for authentication from the database.
-    Returns cookie data in the format expected by yt-dlp.
-
-    Fallback options:
-    1. Database (Cookie model with application='youtube')
-    2. Environment variable YOUTUBE_COOKIES_JSON
-    3. Empty list (no authentication)
-    """
-    try:
-        # Import here to avoid circular imports
-        from master.models import Cookie
-
-        # Get active YouTube cookies from database
-        youtube_cookies = Cookie.objects.filter(
-            application='youtube',
-            is_active=True
-        ).exclude(
-            expires_at__lt=timezone.now()  # Exclude expired cookies
-        ).order_by('-created_at').first()  # Get the most recent one
-
-        if youtube_cookies and youtube_cookies.cookie_data:
-            # Extract cookie data from the model
-            cookies_data = youtube_cookies.cookie_data
-
-            # Handle both list and dict formats
-            if isinstance(cookies_data, dict):
-                # If it's a single cookie object, convert to list
-                cookies_data = [cookies_data]
-            elif not isinstance(cookies_data, list):
-                # If it's neither list nor dict, skip to fallback
-                cookies_data = []
-
-            # Convert to a simpler format for easier processing
-            simplified_cookies = []
-            for cookie in cookies_data:
-                if isinstance(cookie, dict) and 'name' in cookie and 'value' in cookie:
-                    simplified_cookie = {
-                        'name': cookie['name'],
-                        'value': cookie['value'],
-                        'domain': cookie.get('domain', '.youtube.com'),
-                        'path': cookie.get('path', '/'),
-                        'secure': cookie.get('secure', True),
-                        'httponly': cookie.get('httpOnly', False),
-                        'expires': cookie.get('expirationDate', cookie.get('expires'))
-                    }
-                    simplified_cookies.append(simplified_cookie)
-
-            if simplified_cookies:
-                print(f"Using {len(simplified_cookies)} YouTube cookies from database")
-                return simplified_cookies
-
-    except Exception as e:
-        print(f"Error loading cookies from database: {e}")
-
-    # Check if cookies are provided via environment variable (fallback)
-    env_cookies = os.environ.get('YOUTUBE_COOKIES_JSON')
-    if env_cookies:
-        try:
-            cookies_data = json.loads(env_cookies)
-            if isinstance(cookies_data, list):
-                simplified_cookies = []
-                for cookie in cookies_data:
-                    simplified_cookie = {
-                        'name': cookie['name'],
-                        'value': cookie['value'],
-                        'domain': cookie.get('domain', '.youtube.com'),
-                        'path': cookie.get('path', '/'),
-                        'secure': cookie.get('secure', True),
-                        'httponly': cookie.get('httpOnly', False),
-                        'expires': cookie.get('expirationDate', cookie.get('expires'))
-                    }
-                    simplified_cookies.append(simplified_cookie)
-                print(f"Using {len(simplified_cookies)} YouTube cookies from environment variable")
-                return simplified_cookies
-        except json.JSONDecodeError:
-            print("Invalid JSON format in YOUTUBE_COOKIES_JSON environment variable")
-
-    # No cookies available - return empty list
-    print("No YouTube cookies available - proceeding without authentication")
-    return []
-
-
-def create_cookie_file(temp_dir):
-    """
-    Create a temporary cookie file for yt-dlp in Netscape format.
-    Returns the path to the cookie file.
-    """
-    try:
-        cookies_data = get_youtube_cookies()
-        cookie_file_path = os.path.join(temp_dir, "youtube_cookies.txt")
-
-        with open(cookie_file_path, 'w') as f:
-            # Write Netscape cookie file header
-            f.write("# Netscape HTTP Cookie File\n")
-            f.write("# This is a generated file! Do not edit.\n\n")
-
-            # Convert each cookie to Netscape format
-            for cookie in cookies_data:
-                # Netscape format: domain\tinclude_subdomains\tpath\tsecure\texpiration\tname\tvalue
-                domain = cookie['domain']
-                include_subdomains = "TRUE" if domain.startswith('.') else "FALSE"
-                path = cookie['path']
-                secure = "TRUE" if cookie['secure'] else "FALSE"
-                expiration = str(int(cookie.get('expires', 0))) if cookie.get('expires') else "0"
-                name = cookie['name']
-                value = cookie['value']
-
-                line = f"{domain}\t{include_subdomains}\t{path}\t{secure}\t{expiration}\t{name}\t{value}\n"
-                f.write(line)
-
-        return cookie_file_path
-    except Exception as e:
-        # If cookie file creation fails, return None to proceed without cookies
-        print(f"Warning: Could not create cookie file: {e}")
-        return None
-
-
 @shared_task(bind=True)
 def download_youtube_mp3(self, youtube_mp3_id):
     """
@@ -166,17 +46,13 @@ def download_youtube_mp3(self, youtube_mp3_id):
         # Create a temporary directory for downloads
         with tempfile.TemporaryDirectory() as temp_dir:
             # Try to use cookies.txt from /tmp folder first, fallback to hardcoded cookies
-            external_cookie_path = "/tmp/cookies.txt"
+            external_cookie_path = "cookies/yt-cookies.txt"
             cookie_file_path = None
 
             if os.path.exists(external_cookie_path):
                 # Use existing cookies.txt from /tmp
                 cookie_file_path = external_cookie_path
                 logger.info(f"Using external cookie file: {external_cookie_path}")
-            else:
-                # Fallback to creating temporary cookie file with hardcoded cookies
-                cookie_file_path = create_cookie_file(temp_dir)
-                logger.warning(f"External cookie file not found at {external_cookie_path}, using hardcoded cookies")
 
             # Configure yt-dlp options with cookies
             ydl_opts = {
@@ -344,7 +220,7 @@ def refresh_youtube_cookies(self, cookie_file_path=None, use_chromium=False):
         # Determine cookie file path
         if not cookie_file_path:
             # Use default path from settings or fallback
-            cookie_file_path = getattr(settings, 'YOUTUBE_COOKIES_PATH', '/tmp/cookies.txt')
+            cookie_file_path = getattr(settings, 'YOUTUBE_COOKIES_PATH', 'cookies/yt-cookies.txt')
 
         logger.info(f"Starting cookie refresh task with file: {cookie_file_path}")
 
@@ -364,6 +240,7 @@ def refresh_youtube_cookies(self, cookie_file_path=None, use_chromium=False):
         # Refresh cookies
         logger.info("Refreshing cookies...")
         refresh_result = update_cookies(cookie_file_path, use_chromium)
+        logger.info(f"Cookie refresh result: {refresh_result}")
 
         if not refresh_result:
             return {
@@ -434,11 +311,9 @@ def scheduled_cookie_refresh(cookie_file_path=None, use_chromium=False):
     logger.info("Starting scheduled cookie refresh...")
 
     # Call the main refresh task
-    result = refresh_youtube_cookies.delay(cookie_file_path, use_chromium)
-
+    result = refresh_youtube_cookies(cookie_file_path, use_chromium)
     return {
-        "status": "scheduled",
+        "status": result.get("status", "error"),
         "message": "Cookie refresh task scheduled successfully",
-        "task_id": result.id,
         "cookie_file": cookie_file_path or "default"
     }

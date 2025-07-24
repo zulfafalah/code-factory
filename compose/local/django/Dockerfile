@@ -31,6 +31,10 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV BUILD_ENV=${BUILD_ENVIRONMENT}
 
+# Chrome/Selenium environment variables
+ENV CHROME_BIN=/usr/bin/google-chrome
+ENV CHROME_PATH=/usr/bin/google-chrome
+
 WORKDIR ${APP_HOME}
 
 
@@ -54,9 +58,26 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   gettext \
   # yt-dlp dependencies
   ffmpeg \
+  # Chrome dependencies
+  wget \
+  gnupg \
+  unzip \
+  curl \
+  xvfb \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+  && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+  && apt-get update \
+  && apt-get install -y google-chrome-stable \
+  && rm -rf /var/lib/apt/lists/*
+
+# Set display port to avoid crash
+ENV DISPLAY=:99
+ENV CHROME_NO_SANDBOX=true
 
 # All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
 # copy python dependency wheels from python-build-stage
@@ -65,6 +86,9 @@ COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 # use wheels to install python dependencies
 RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
   && rm -rf /wheels/
+
+COPY ./compose/local/django/setup-chrome.sh /setup-chrome.sh
+RUN chmod +x /setup-chrome.sh
 
 COPY ./compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint
