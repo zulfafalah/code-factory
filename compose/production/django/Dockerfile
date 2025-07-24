@@ -45,6 +45,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   libpq-dev \
   # Translations dependencies
   gettext \
+  # FFmpeg for video/audio processing
+  ffmpeg \
   # entrypoint
   wait-for-it \
   # cleaning up unused files
