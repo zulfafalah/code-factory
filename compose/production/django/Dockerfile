@@ -1,4 +1,3 @@
-
 # define an alias for the specific python version used in this file.
 FROM docker.io/python:3.12.7-slim-bookworm AS python
 
@@ -39,7 +38,7 @@ RUN addgroup --system django \
     && adduser --system --ingroup django django
 
 
-# Install required system dependencies
+# Install required system dependencies including Chrome
 RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg dependencies
   libpq-dev \
@@ -49,9 +48,71 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   ffmpeg \
   # entrypoint
   wait-for-it \
+  # Chrome dependencies
+  wget \
+  gnupg \
+  unzip \
+  curl \
+  ca-certificates \
+  fonts-liberation \
+  libasound2 \
+  libatk-bridge2.0-0 \
+  libatk1.0-0 \
+  libc6 \
+  libcairo2 \
+  libcups2 \
+  libdbus-1-3 \
+  libexpat1 \
+  libfontconfig1 \
+  libgbm1 \
+  libgcc1 \
+  libglib2.0-0 \
+  libgtk-3-0 \
+  libnspr4 \
+  libnss3 \
+  libpango-1.0-0 \
+  libpangocairo-1.0-0 \
+  libstdc++6 \
+  libx11-6 \
+  libx11-xcb1 \
+  libxcb1 \
+  libxcomposite1 \
+  libxcursor1 \
+  libxdamage1 \
+  libxext6 \
+  libxfixes3 \
+  libxi6 \
+  libxrandr2 \
+  libxrender1 \
+  libxss1 \
+  libxtst6 \
+  lsb-release \
+  xdg-utils \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
+  && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+  && apt-get update \
+  && apt-get install -y google-chrome-stable \
+  && rm -rf /var/lib/apt/lists/*
+
+# Create directories for Chrome with proper permissions
+RUN mkdir -p /home/django/.cache/selenium \
+    && mkdir -p /home/django/.local/share \
+    && mkdir -p /tmp/chrome-user-data \
+    && mkdir -p /tmp/chrome-cache \
+    && mkdir -p /tmp/downloads \
+    && chown -R django:django /home/django \
+    && chown -R django:django /tmp/chrome-user-data \
+    && chown -R django:django /tmp/chrome-cache \
+    && chown -R django:django /tmp/downloads \
+    && chmod -R 755 /home/django \
+    && chmod -R 777 /tmp/chrome-user-data \
+    && chmod -R 777 /tmp/chrome-cache \
+    && chmod -R 777 /tmp/downloads
 
 # All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
 # copy python dependency wheels from python-build-stage
@@ -97,6 +158,12 @@ RUN mkdir -p ${APP_HOME}/palpal/media/yttoolkit/downloads \
     && chmod -R 777 ${APP_HOME}/palpal/media
 
 USER django
+
+# Set environment variables for Chrome
+ENV HOME=/home/django
+ENV XDG_CACHE_HOME=/home/django/.cache
+ENV CHROME_BIN=/usr/bin/google-chrome-stable
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 RUN DATABASE_URL="" \
   CELERY_BROKER_URL="" \

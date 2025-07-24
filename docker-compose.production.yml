@@ -57,6 +57,16 @@ services:
     env_file:
       - ./.envs/.production/.django
       - ./.envs/.production/.postgres
+    environment:
+      - HOME=/home/django
+      - XDG_CACHE_HOME=/home/django/.cache
+      - CHROME_BIN=/usr/bin/google-chrome-stable
+      - DISPLAY=:99
+    tmpfs:
+      - /tmp/chrome-user-data:exec
+      - /tmp/chrome-cache:exec
+      - /tmp/downloads:exec
+    shm_size: 2gb
     command: /start-celeryworker
 
   celerybeat:
