@@ -20,14 +20,6 @@ wait-for-it "${POSTGRES_HOST}:${POSTGRES_PORT}" -t 30
 
 >&2 echo 'PostgreSQL is available'
 
-# Create media directories with proper permissions if they don't exist
-if [ ! -d "/app/palpal/media/yttoolkit/downloads" ]; then
-    >&2 echo 'Creating media directories...'
-    mkdir -p /app/palpal/media/yttoolkit/downloads
-    chmod 755 /app/palpal/media/yttoolkit/downloads
-    >&2 echo 'Media directories created successfully'
-fi
-
 # Setup Chrome environment if script exists
 if [ -f "/setup-chrome.sh" ]; then
     >&2 echo 'Setting up Chrome environment...'
