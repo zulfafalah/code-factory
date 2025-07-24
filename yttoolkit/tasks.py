@@ -8,6 +8,7 @@ from pathlib import Path
 import yt_dlp
 from celery import shared_task
 from django.conf import settings
+from django.utils import timezone
 
 from .models import YouTubeMP3
 
