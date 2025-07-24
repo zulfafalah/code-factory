@@ -273,7 +273,8 @@ dump.rdb
 
 ### Project template
 palpal/media/
-cookies/*
+cookies/*cookies*
+!cookies/.gitkeep
 
 .pytest_cache/
 .ipython/
