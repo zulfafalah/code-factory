@@ -20,4 +20,10 @@ wait-for-it "${POSTGRES_HOST}:${POSTGRES_PORT}" -t 30
 
 >&2 echo 'PostgreSQL is available'
 
+# Setup Chrome environment if script exists
+if [ -f "/setup-chrome.sh" ]; then
+    >&2 echo 'Setting up Chrome environment...'
+    /setup-chrome.sh
+fi
+
 exec "$@"

@@ -45,7 +45,7 @@ def download_youtube_mp3(self, youtube_mp3_id):
         # Create a temporary directory for downloads
         with tempfile.TemporaryDirectory() as temp_dir:
             # Try to use cookies.txt from /tmp folder first, fallback to hardcoded cookies
-            external_cookie_path = "/tmp/cookies.txt"
+            external_cookie_path = "cookies/yt-cookies.txt"
             cookie_file_path = None
 
             if os.path.exists(external_cookie_path):
@@ -219,7 +219,7 @@ def refresh_youtube_cookies(self, cookie_file_path=None, use_chromium=False):
         # Determine cookie file path
         if not cookie_file_path:
             # Use default path from settings or fallback
-            cookie_file_path = getattr(settings, 'YOUTUBE_COOKIES_PATH', '/tmp/cookies.txt')
+            cookie_file_path = getattr(settings, 'YOUTUBE_COOKIES_PATH', 'cookies/yt-cookies.txt')
 
         logger.info(f"Starting cookie refresh task with file: {cookie_file_path}")
 
@@ -310,11 +310,9 @@ def scheduled_cookie_refresh(cookie_file_path=None, use_chromium=False):
     logger.info("Starting scheduled cookie refresh...")
 
     # Call the main refresh task
-    result = refresh_youtube_cookies.delay(cookie_file_path, use_chromium)
-
+    result = refresh_youtube_cookies(cookie_file_path, use_chromium)
     return {
-        "status": "scheduled",
+        "status": result.get("status", "error"),
         "message": "Cookie refresh task scheduled successfully",
-        "task_id": result.id,
         "cookie_file": cookie_file_path or "default"
     }
