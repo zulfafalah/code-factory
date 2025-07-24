@@ -105,7 +105,21 @@ def download_youtube_mp3(self, youtube_mp3_id):
                     from django.conf import settings
 
                     download_dir = Path(settings.MEDIA_ROOT) / "yttoolkit" / "downloads"
-                    download_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Try to create directory with error handling
+                    try:
+                        download_dir.mkdir(parents=True, exist_ok=True)
+                        # Ensure directory has proper permissions
+                        os.chmod(download_dir, 0o755)
+                    except PermissionError as pe:
+                        logger.error(f"Permission error creating directory {download_dir}: {pe}")
+                        # Try alternative path in temp directory
+                        download_dir = Path(temp_dir) / "final_downloads"
+                        download_dir.mkdir(parents=True, exist_ok=True)
+                        logger.warning(f"Using temporary directory instead: {download_dir}")
+                    except Exception as dir_error:
+                        logger.error(f"Error creating directory {download_dir}: {dir_error}")
+                        raise dir_error
 
                     # Generate a safe filename
                     safe_filename = re.sub(r"[^\w\s-]", "", video_title)
@@ -113,13 +127,26 @@ def download_youtube_mp3(self, youtube_mp3_id):
                     final_filename = f"{safe_filename}_{youtube_mp3.id}.mp3"
                     final_path = download_dir / final_filename
 
-                    # Copy the file to the media directory
-                    shutil.copy2(mp3_file, final_path)
+                    # Copy the file to the media directory with error handling
+                    try:
+                        shutil.copy2(mp3_file, final_path)
+                        logger.info(f"Successfully copied file to: {final_path}")
 
-                    # Update model with file info
-                    youtube_mp3.file_size = file_size
-                    youtube_mp3.file_name = final_filename
-                    youtube_mp3.file_path = str(final_path)
+                        # Update model with file info
+                        youtube_mp3.file_size = file_size
+                        youtube_mp3.file_name = final_filename
+                        youtube_mp3.file_path = str(final_path)
+
+                    except PermissionError as pe:
+                        logger.error(f"Permission error copying file: {pe}")
+                        # Keep file in temp directory and update path
+                        youtube_mp3.file_size = file_size
+                        youtube_mp3.file_name = mp3_file.name
+                        youtube_mp3.file_path = str(mp3_file)
+                        youtube_mp3.error_message = f"File saved in temporary location due to permission error: {pe}"
+                    except Exception as copy_error:
+                        logger.error(f"Error copying file: {copy_error}")
+                        raise copy_error
 
         # Mark as completed
         youtube_mp3.download_status = "completed"
