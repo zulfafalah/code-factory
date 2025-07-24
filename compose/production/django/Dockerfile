@@ -94,7 +94,7 @@ RUN chown -R django:django ${APP_HOME}
 # Create media directories with proper permissions
 RUN mkdir -p ${APP_HOME}/palpal/media/yttoolkit/downloads \
     && chown -R django:django ${APP_HOME}/palpal/media \
-    && chmod -R 755 ${APP_HOME}/palpal/media
+    && chmod -R 777 ${APP_HOME}/palpal/media
 
 USER django
 
