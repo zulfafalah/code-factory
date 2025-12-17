@@ -14,6 +14,7 @@ class Manhwa(models.Model):
             ), 
         default='pending')
     content = models.TextField(null=True, blank=True)
+    zip_file = models.FileField(upload_to='zip_files/', null=True, blank=True)
 
     def __str__(self):
         return self.title
