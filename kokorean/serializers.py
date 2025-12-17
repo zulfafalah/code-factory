@@ -10,8 +10,8 @@ class ManhwaSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Manhwa
-        fields = ['id', 'url', 'title', 'created_at', 'updated_at', 'download_status', 'content']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'url', 'title', 'created_at', 'updated_at', 'download_status', 'content', 'zip_file']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'zip_file']
 
 
 class ManhwaListSerializer(serializers.ModelSerializer):
@@ -20,8 +20,8 @@ class ManhwaListSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Manhwa
-        fields = ['id', 'url', 'title', 'created_at', 'updated_at', 'download_status']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'url', 'title', 'created_at', 'updated_at', 'download_status', 'zip_file']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'zip_file']
 
 
 class ManhwaCreateSerializer(serializers.ModelSerializer):
@@ -47,8 +47,12 @@ class ManhwaCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """
-        Override create method to extract title and image URLs from URL
+        Override create method to extract title and image URLs from URL,
+        then trigger background task to download and compress images
         """
+        from .tasks import download_and_compress_manhwa_images
+        from urllib.parse import urlparse
+        
         url = validated_data.get('url')
         
         # Extract title and image URLs from the provided URL
@@ -60,8 +64,8 @@ class ManhwaCreateSerializer(serializers.ModelSerializer):
             
             # Store image URLs as JSON in content field
             validated_data['content'] = json.dumps(result['image_urls'])
-            # Update status to 'in progress'
-            validated_data['download_status'] = 'in progress'
+            # Set initial status to 'pending' (will be updated by background task)
+            validated_data['download_status'] = 'pending'
         else:
             # If extraction fails, set status to 'failed' and store error message
             validated_data['download_status'] = 'failed'
@@ -73,7 +77,23 @@ class ManhwaCreateSerializer(serializers.ModelSerializer):
                 validated_data['title'] = result['title']
         
         # Create the Manhwa instance
-        return super().create(validated_data)
+        instance = super().create(validated_data)
+        
+        # If extraction was successful, trigger background task to download images
+        if result['success']:
+            # Extract base URL from manhwa URL
+            parsed_url = urlparse(url)
+            base_url = "https://image.asfsadfimiim.com/"
+            
+            # Trigger Celery task asynchronously
+            download_and_compress_manhwa_images.delay(
+                manhwa_id=instance.id,
+                base_url=base_url,
+                max_workers=3
+            )
+        
+        return instance
+
 
 
 
