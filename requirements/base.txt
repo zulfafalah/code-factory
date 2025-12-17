@@ -32,3 +32,7 @@ yt-dlp==2025.5.22
 # selenium and webdriver-manager
 selenium==4.33.0
 webdriver-manager==4.0.2
+
+# web scraping for manhwa image extraction
+beautifulsoup4==4.12.3
+requests==2.32.3
