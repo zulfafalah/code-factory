@@ -80,9 +80,24 @@ class ManhwaViewSet(viewsets.ModelViewSet):
         """
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+        
+        # Prepare response data
+        response_data = serializer.data
+        
+        # Add zip file size in MB if zip file exists
+        if instance.zip_file and instance.zip_file.name:
+            try:
+                # Convert bytes to MB (1 MB = 1024 * 1024 bytes)
+                size_in_mb = instance.zip_file.size / (1024 * 1024)
+                response_data['zip_file_size_mb'] = round(size_in_mb, 2)
+            except Exception:
+                response_data['zip_file_size_mb'] = None
+        else:
+            response_data['zip_file_size_mb'] = None
+        
         return Response({
             'success': True,
-            'data': serializer.data
+            'data': response_data
         })
     
     def update(self, request, *args, **kwargs):
