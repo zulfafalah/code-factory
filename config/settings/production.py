@@ -191,5 +191,15 @@ sentry_sdk.init(
 SPECTACULAR_SETTINGS["SERVERS"] = [
     {"url": "https://palpal.com", "description": "Production server"},
 ]
+
+# CORS Configuration
+# ------------------------------------------------------------------------------
+# https://github.com/adamchainz/django-cors-headers
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS",
+    default=["http://localhost:3001", "http://127.0.0.1:3001"],
+)
+CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=True)
+
 # Your stuff...
 # ------------------------------------------------------------------------------
