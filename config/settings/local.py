@@ -82,15 +82,6 @@ SPECTACULAR_SETTINGS = {
     "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
 }
 
-# CORS Configuration
-# ------------------------------------------------------------------------------
-# https://github.com/adamchainz/django-cors-headers
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:3001", "http://127.0.0.1:3001"],
-)
-CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=True)
-
 # Celery
 # ------------------------------------------------------------------------------
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-eager-propagates
