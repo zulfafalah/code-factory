@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny
 from django.shortcuts import get_object_or_404
 
 from .models import Manhwa
@@ -15,21 +15,21 @@ from .serializers import (
 
 class ManhwaViewSet(viewsets.ModelViewSet):
     """
-    ViewSet untuk CRUD Manhwa
+    ViewSet for CRUD Manhwa
     
     Endpoints:
-    - GET /api/manhwa/ - List semua manhwa
-    - POST /api/manhwa/ - Create manhwa baru
+    - GET /api/manhwa/ - List all manhwa
+    - POST /api/manhwa/ - Create new manhwa
     - GET /api/manhwa/{id}/ - Detail manhwa
     - PUT /api/manhwa/{id}/ - Update manhwa (full)
     - PATCH /api/manhwa/{id}/ - Update manhwa (partial)
-    - DELETE /api/manhwa/{id}/ - Hapus manhwa
-    - GET /api/manhwa/pending/ - List manhwa dengan status pending
-    - GET /api/manhwa/completed/ - List manhwa dengan status completed
-    - GET /api/manhwa/failed/ - List manhwa dengan status failed
+    - DELETE /api/manhwa/{id}/ - Delete manhwa
+    - GET /api/manhwa/pending/ - List manhwa with status pending
+    - GET /api/manhwa/completed/ - List manhwa with status completed
+    - GET /api/manhwa/failed/ - List manhwa with status failed
     """
     queryset = Manhwa.objects.all().order_by('-created_at')
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AllowAny]
     
     def get_serializer_class(self):
         """
@@ -46,7 +46,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """
         GET /api/manhwa/
-        List semua manhwa (tanpa field content untuk performance)
+        List all manhwa (without content field for performance)
         """
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
@@ -59,7 +59,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         POST /api/manhwa/
-        Create manhwa baru
+        Create new manhwa
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -76,7 +76,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """
         GET /api/manhwa/{id}/
-        Detail manhwa
+        Detail specific manhwa
         """
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -88,7 +88,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         """
         PUT /api/manhwa/{id}/
-        Update manhwa (full update)
+        Update specific manhwa (full update)
         """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
@@ -107,7 +107,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         """
         PATCH /api/manhwa/{id}/
-        Update manhwa (partial update)
+        Update specific manhwa (partial update)
         """
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
@@ -115,7 +115,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """
         DELETE /api/manhwa/{id}/
-        Hapus manhwa
+        Delete specific manhwa
         """
         instance = self.get_object()
         manhwa_title = instance.title
@@ -129,7 +129,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def pending(self, request):
         """
         GET /api/manhwa/pending/
-        List manhwa dengan status pending
+        List specific manhwa with status pending
         """
         queryset = self.get_queryset().filter(download_status='pending')
         serializer = ManhwaListSerializer(queryset, many=True)
@@ -143,7 +143,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def completed(self, request):
         """
         GET /api/manhwa/completed/
-        List manhwa dengan status completed
+        List specific manhwa with status completed
         """
         queryset = self.get_queryset().filter(download_status='completed')
         serializer = ManhwaListSerializer(queryset, many=True)
@@ -157,7 +157,7 @@ class ManhwaViewSet(viewsets.ModelViewSet):
     def failed(self, request):
         """
         GET /api/manhwa/failed/
-        List manhwa dengan status failed
+        List specific manhwa with status failed
         """
         queryset = self.get_queryset().filter(download_status='failed')
         serializer = ManhwaListSerializer(queryset, many=True)
