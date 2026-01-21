@@ -8,6 +8,8 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+      args:
+        - INSTALL_CHROME=${INSTALL_CHROME:-false}
     image: palpal_local_django
     container_name: palpal_local_django
     depends_on:

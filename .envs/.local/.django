@@ -3,6 +3,8 @@
 USE_DOCKER=yes
 IPYTHONDIR=/app/.ipython
 DJANGO_SETTINGS_MODULE=config.settings.local
+# Set to false to skip Chrome installation (for ARM64/Apple Silicon)
+INSTALL_CHROME=false
 # Email
 # ------------------------------------------------------------------------------
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend

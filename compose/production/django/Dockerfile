@@ -27,6 +27,7 @@ FROM python AS python-run-stage
 
 ARG BUILD_ENVIRONMENT=production
 ARG APP_HOME=/app
+ARG INSTALL_CHROME=false
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -38,7 +39,7 @@ RUN addgroup --system django \
     && adduser --system --ingroup django django
 
 
-# Install required system dependencies including Chrome
+# Install required system dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg dependencies
   libpq-dev \
@@ -48,12 +49,19 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   ffmpeg \
   # entrypoint
   wait-for-it \
-  # Chrome dependencies
+  # Chrome dependencies (wget, gnupg, etc. are also useful for other things)
   wget \
   gnupg \
   unzip \
   curl \
   ca-certificates \
+  # cleaning up unused files
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install Chrome dependencies and Google Chrome (only on amd64, skip on ARM64/Apple Silicon)
+RUN if [ "$INSTALL_CHROME" = "true" ]; then \
+  apt-get update && apt-get install --no-install-recommends -y \
   fonts-liberation \
   libasound2 \
   libatk-bridge2.0-0 \
@@ -88,31 +96,32 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   libxtst6 \
   lsb-release \
   xdg-utils \
-  # cleaning up unused files
-  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install Google Chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
+  && rm -rf /var/lib/apt/lists/* \
+  && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
   && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
   && apt-get update \
   && apt-get install -y google-chrome-stable \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*; \
+  else \
+  echo "Skipping Chrome installation (INSTALL_CHROME=$INSTALL_CHROME)"; \
+  fi
 
-# Create directories for Chrome with proper permissions
-RUN mkdir -p /home/django/.cache/selenium \
-    && mkdir -p /home/django/.local/share \
-    && mkdir -p /tmp/chrome-user-data \
-    && mkdir -p /tmp/chrome-cache \
-    && mkdir -p /tmp/downloads \
-    && chown -R django:django /home/django \
-    && chown -R django:django /tmp/chrome-user-data \
-    && chown -R django:django /tmp/chrome-cache \
-    && chown -R django:django /tmp/downloads \
-    && chmod -R 755 /home/django \
-    && chmod -R 777 /tmp/chrome-user-data \
-    && chmod -R 777 /tmp/chrome-cache \
-    && chmod -R 777 /tmp/downloads
+# Create directories for Chrome with proper permissions (only if Chrome is installed)
+RUN if [ "$INSTALL_CHROME" = "true" ]; then \
+  mkdir -p /home/django/.cache/selenium \
+  && mkdir -p /home/django/.local/share \
+  && mkdir -p /tmp/chrome-user-data \
+  && mkdir -p /tmp/chrome-cache \
+  && mkdir -p /tmp/downloads \
+  && chown -R django:django /home/django \
+  && chown -R django:django /tmp/chrome-user-data \
+  && chown -R django:django /tmp/chrome-cache \
+  && chown -R django:django /tmp/downloads \
+  && chmod -R 755 /home/django \
+  && chmod -R 777 /tmp/chrome-user-data \
+  && chmod -R 777 /tmp/chrome-cache \
+  && chmod -R 777 /tmp/downloads; \
+  fi
 
 # All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
 # copy python dependency wheels from python-build-stage

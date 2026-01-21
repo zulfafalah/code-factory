@@ -26,12 +26,13 @@ FROM python AS python-run-stage
 
 ARG BUILD_ENVIRONMENT=local
 ARG APP_HOME=/app
+ARG INSTALL_CHROME=false
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV BUILD_ENV=${BUILD_ENVIRONMENT}
 
-# Chrome/Selenium environment variables
+# Chrome/Selenium environment variables (only set if Chrome is installed)
 ENV CHROME_BIN=/usr/bin/google-chrome
 ENV CHROME_PATH=/usr/bin/google-chrome
 
@@ -58,7 +59,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   gettext \
   # yt-dlp dependencies
   ffmpeg \
-  # Chrome dependencies
+  # Chrome dependencies (wget, gnupg, etc. are also useful for other things)
   wget \
   gnupg \
   unzip \
@@ -68,12 +69,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+# Install Google Chrome (only on amd64 architecture, skip on ARM64/Apple Silicon)
+RUN if [ "$INSTALL_CHROME" = "true" ]; then \
+  wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
   && apt-get update \
   && apt-get install -y google-chrome-stable \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*; \
+  else \
+  echo "Skipping Chrome installation (INSTALL_CHROME=$INSTALL_CHROME)"; \
+  fi
 
 # Set display port to avoid crash
 ENV DISPLAY=:99
