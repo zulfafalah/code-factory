@@ -94,6 +94,7 @@ LOCAL_APPS = [
     "sales",
     "yttoolkit",
     "kokorean",
+    "ceritain"
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -440,6 +441,18 @@ UNFOLD = {
                         "title": _("Home"),
                         "icon": "dashboard",
                         "link": reverse_lazy("admin:index"),
+                    },
+                ],
+            },
+            {
+                "title": _("Ceritain"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Story Narration"),
+                        "icon": "book",
+                        "link": reverse_lazy("admin:ceritain_storynarration_changelist"),
                     },
                 ],
             },
