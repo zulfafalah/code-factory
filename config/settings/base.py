@@ -4,6 +4,9 @@
 from pathlib import Path
 
 import environ
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # palpal/
@@ -60,6 +63,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 # APPS
 # ------------------------------------------------------------------------------
 DJANGO_APPS = [
+    "unfold",  # Must be before django.contrib.admin
+    "unfold.contrib.filters",  # Optional but recommended for filters
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -358,3 +363,175 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
 EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 
+
+# UNFOLD DJANGO ADMIN CONFIGURATION
+# ==========================================
+UNFOLD = {
+    # Site Customization
+    "SITE_TITLE": "Code Factory | Admin Dashboard",
+    "SITE_HEADER": "Code Factory Dashboard",
+    "SITE_SUBHEADER": "Backend Administration Panel",
+
+    # Environment Badge
+    "ENVIRONMENT": "config.unfold_utils.environment_callback",
+
+    "SITE_SYMBOL": "admin_panel_settings",  # Material Design Icons
+    "SITE_URL": "/admin/",
+
+    # Title Prefix based on Environment
+    "ENVIRONMENT_PREFIX": "config.unfold_utils.environment_title_prefix_callback",
+
+    # UI Settings
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SHOW_BACK_BUTTON": True,
+    "THEME": None,  # None = auto, "dark" or "light"
+    "BORDER_RADIUS": "8px",
+
+    # Colors - Django Green (#0d4b33) converted to OKLCH format
+    "COLORS": {
+        "base": {
+            "50": "oklch(98.5% .002 160)",
+            "100": "oklch(96.7% .003 160)",
+            "200": "oklch(92.8% .006 160)",
+            "300": "oklch(87.2% .01 160)",
+            "400": "oklch(70.7% .022 160)",
+            "500": "oklch(55.1% .027 160)",
+            "600": "oklch(44.6% .03 160)",
+            "700": "oklch(37.3% .034 160)",
+            "800": "oklch(27.8% .033 160)",
+            "900": "oklch(21% .034 160)",
+            "950": "oklch(13% .028 160)",
+        },
+        "primary": {
+            "50": "oklch(97.8% .018 163)",
+            "100": "oklch(95.1% .038 163)",
+            "200": "oklch(90.5% .074 163)",
+            "300": "oklch(83.5% .128 163)",
+            "400": "oklch(60% .15 163)",
+            "500": "oklch(45% .12 163)",  # Close to #0d4b33
+            "600": "oklch(38% .10 163)",
+            "700": "oklch(32% .09 163)",
+            "800": "oklch(28% .08 163)",
+            "900": "oklch(24% .07 163)",
+            "950": "oklch(18% .05 163)",
+        },
+        "font": {
+            "subtle-light": "var(--color-base-500)",
+            "subtle-dark": "var(--color-base-400)",
+            "default-light": "var(--color-base-700)",
+            "default-dark": "var(--color-base-200)",
+            "important-light": "var(--color-base-900)",
+            "important-dark": "var(--color-base-50)",
+        },
+    },
+
+    # Sidebar Navigation
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": _("Dashboard"),
+                "separator": False,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Home"),
+                        "icon": "dashboard",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                ],
+            },
+            {
+                "title": _("Master Data"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Tags"),
+                        "icon": "label",
+                        "link": reverse_lazy("admin:master_tag_changelist"),
+                    },
+                    {
+                        "title": _("Cookies"),
+                        "icon": "cookie",
+                        "link": reverse_lazy("admin:master_cookie_changelist"),
+                    },
+                    {
+                        "title": _("Item Groups"),
+                        "icon": "folder_special",
+                        "link": reverse_lazy("admin:master_itemgroup_changelist"),
+                    },
+                    {
+                        "title": _("Items"),
+                        "icon": "inventory",
+                        "link": reverse_lazy("admin:master_item_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Sales"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Sales Orders"),
+                        "icon": "shopping_cart",
+                        "link": reverse_lazy("admin:sales_salesorder_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("YouTube Toolkit"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("MP3 Downloads"),
+                        "icon": "music_note",
+                        "link": reverse_lazy("admin:yttoolkit_youtubemp3_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Manhwa (KoKorean)"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Manhwa"),
+                        "icon": "book",
+                        "link": reverse_lazy("admin:kokorean_manhwa_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("User Management"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Users"),
+                        "icon": "group",
+                        "link": reverse_lazy("admin:users_user_changelist"),
+                        "badge": "config.unfold_utils.user_count_badge",
+                    },
+                ],
+            },
+            {
+                "title": _("Administration"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Groups"),
+                        "icon": "security",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                        "permission": "config.unfold_utils.is_superuser",
+                    },
+                ],
+            },
+        ],
+    },
+}

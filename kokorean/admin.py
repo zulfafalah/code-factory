@@ -1,7 +1,12 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
+
 from .models import Manhwa
-# Register your models here.
+
 
 @admin.register(Manhwa)
-class ManhwaAdmin(admin.ModelAdmin):
-    list_display = ('url', 'title', 'created_at', 'updated_at', 'download_status')
+class ManhwaAdmin(ModelAdmin):
+    list_display = ["title", "url", "download_status", "created_at", "updated_at"]
+    list_filter = ["download_status"]
+    search_fields = ["title", "url"]
+    ordering = ["-created_at"]
