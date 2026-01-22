@@ -37,3 +37,12 @@ class User(AbstractUser):
 
         """
         return reverse("users:detail", kwargs={"pk": self.id})
+    
+    def get_full_name(self) -> str:
+        """Return the full name for the user.
+
+        Returns:
+            str: User's full name or email.
+
+        """
+        return self.name if self.name else self.email
