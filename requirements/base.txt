@@ -36,3 +36,6 @@ webdriver-manager==4.0.2
 # web scraping for manhwa image extraction
 beautifulsoup4==4.12.3
 requests==2.32.3
+
+# Django Admin Theme
+django-unfold==0.76.0  # https://github.com/unfoldadmin/django-unfold

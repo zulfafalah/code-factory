@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
 from .models import YouTubeMP3
 
@@ -7,7 +8,7 @@ from .models import YouTubeMP3
 
 
 @admin.register(YouTubeMP3)
-class YouTubeMP3Admin(admin.ModelAdmin):
+class YouTubeMP3Admin(ModelAdmin):
     # Constants for display text truncation
     URL_DISPLAY_LENGTH = 50
     URL_TRUNCATE_LENGTH = 47
