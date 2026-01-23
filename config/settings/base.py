@@ -364,6 +364,9 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
 EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 
+# OpenAI API
+# ------------------------------------------------------------------------------
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 
 # UNFOLD DJANGO ADMIN CONFIGURATION
 # ==========================================

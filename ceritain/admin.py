@@ -10,9 +10,9 @@ class StoryNarrationAdmin(ModelAdmin):
     list_filter = ["status"]
     search_fields = ["title"]
     ordering = ["-created_at"]
-    readonly_fields = ["created_at", "updated_at", "created_by", "updated_by", "status"]  
+    readonly_fields = ["created_at", "updated_at", "created_by", "updated_by", "status", "input_token", "output_token", "total_token", "result_file"]  
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj, form, change):   
         if not change:  # Creating a new object
             obj.created_by = request.user
         obj.updated_by = request.user
@@ -26,6 +26,7 @@ class StoryNarrationAdmin(ModelAdmin):
                 "source_url",
                 "final_content",
                 "status",
+                "result_file",
             ),
             "classes": ("tabs",),
         }),
@@ -35,6 +36,14 @@ class StoryNarrationAdmin(ModelAdmin):
                 "updated_by",
                 "created_at",
                 "updated_at",
+            ),
+            "classes": ("tabs",),
+        }),
+        ("Token", {
+            "fields": (
+                "input_token",
+                "output_token",
+                "total_token",
             ),
             "classes": ("tabs",),
         }),

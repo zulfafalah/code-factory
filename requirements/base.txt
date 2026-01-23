@@ -39,3 +39,6 @@ requests==2.32.3
 
 # Django Admin Theme
 django-unfold==0.76.0  # https://github.com/unfoldadmin/django-unfold
+
+# OpenAI API
+openai==1.93.3  # https://github.com/openai/openai-python
