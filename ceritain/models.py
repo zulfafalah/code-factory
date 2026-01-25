@@ -35,9 +35,22 @@ class StoryNarrationSettings(SingletonModel):
     """
     is_maintenance = models.BooleanField(default=False, help_text="Enable maintenance mode")
     daily_token_quota = models.IntegerField(default=100000, help_text="Daily token quota limit")
-    ai_model = models.CharField(max_length=100, default='gpt-4o-mini-tts', help_text="AI model to use for TTS")
+    AI_MODEL_CHOICES = (
+        ('tts-1', 'TTS-1'),
+        ('tts-1-hd', 'TTS-1 HD'),
+        ('gpt-4o-mini-tts', 'GPT-4o Mini TTS'),
+    )
+    ai_model = models.CharField(max_length=100, choices=AI_MODEL_CHOICES, default='gpt-4o-mini-tts', help_text="AI model to use for TTS")
     total_token_used = models.IntegerField(default=0, help_text="Total tokens used")
-    voice_type = models.CharField(max_length=50, default='nova', help_text="Voice type for TTS")
+    VOICE_CHOICES = (
+        ('alloy', 'Alloy'),
+        ('echo', 'Echo'),
+        ('fable', 'Fable'),
+        ('onyx', 'Onyx'),
+        ('nova', 'Nova'),
+        ('shimmer', 'Shimmer'),
+    )
+    voice_type = models.CharField(max_length=50, choices=VOICE_CHOICES, default='nova', help_text="Voice type for TTS")
     background_music = models.FileField(upload_to='background_music/', blank=True, null=True, help_text="Background music file")
 
     def __str__(self):
