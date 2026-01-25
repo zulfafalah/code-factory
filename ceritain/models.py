@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from solo.models import SingletonModel
 
 # Create your models here.
 class StoryNarration(models.Model):
@@ -26,3 +27,23 @@ class StoryNarration(models.Model):
 
     def __str__(self):
         return self.title
+
+class StoryNarrationSettings(SingletonModel):
+    """
+    Singleton model for global Story Narration settings.
+    Uses django-solo to ensure only one instance exists.
+    """
+    is_maintenance = models.BooleanField(default=False, help_text="Enable maintenance mode")
+    daily_token_quota = models.IntegerField(default=100000, help_text="Daily token quota limit")
+    ai_model = models.CharField(max_length=100, default='gpt-4o-mini-tts', help_text="AI model to use for TTS")
+    total_token_used = models.IntegerField(default=0, help_text="Total tokens used")
+    voice_type = models.CharField(max_length=50, default='nova', help_text="Voice type for TTS")
+    background_music = models.FileField(upload_to='background_music/', blank=True, null=True, help_text="Background music file")
+
+    def __str__(self):
+        return "Story Narration Settings"
+
+    class Meta:
+        verbose_name = "Story Narration Settings"
+        verbose_name_plural = "Story Narration Settings"
+
