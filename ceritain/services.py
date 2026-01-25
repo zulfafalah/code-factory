@@ -29,6 +29,23 @@ def process_story_narration(story_narration):
     Args:
         story_narration: StoryNarration instance to be processed
     """
+    from .models import StoryNarrationSettings
+
+    # Check for maintenance mode
+    try:
+        settings = StoryNarrationSettings.get_solo()
+        if settings.is_maintenance:
+            logger.info(f"Maintenance mode active. Skipping StoryNarration {story_narration.id}")
+            story_narration.message_response = "System is currently under maintenance. Please try again later."
+            story_narration.status = 'failed'
+            story_narration.save(update_fields=['message_response', 'status'])
+            return
+    except Exception as e:
+        logger.error(f"Error checking maintenance mode: {e}")
+        # Proceed with caution or fail? Assuming we proceed if check fails, or fail safe?
+        # Let's proceed as this is likely a DB issue which will be caught later or harmless.
+        pass
+
     # Check if source_url exists
     if story_narration.source_url:
         # Process from URL
@@ -256,7 +273,8 @@ Pauses: Brief pauses after important points, highlighting key information."""
     except Exception as e:
         logger.error(f"Error processing StoryNarration {story_narration.id}: {str(e)}")
         # Use update() to avoid transaction issues - this creates a new query
-        from .models import StoryNarration
+        # Use update() to avoid transaction issues - this creates a new query
+        from .models import StoryNarration, StoryNarrationSettings
         StoryNarration.objects.filter(id=story_narration.id).update(
             status='failed',
             final_content=f"Error: {str(e)}"

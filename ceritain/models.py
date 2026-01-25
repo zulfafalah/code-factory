@@ -24,6 +24,7 @@ class StoryNarration(models.Model):
     output_token = models.IntegerField(default=0)
     total_token = models.IntegerField(default=0)
     result_file = models.FileField(upload_to='story_narration_results/', blank=True, null=True)
+    message_response = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.title
