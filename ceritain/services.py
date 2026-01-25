@@ -209,10 +209,13 @@ Pronunciation: Clear and precise, emphasizing key points to reinforce engagement
 
 Pauses: Brief pauses after important points, highlighting key information."""
 
+        from .models import StoryNarrationSettings
+        narration_settings = StoryNarrationSettings.get_solo()
+
         # Generate speech using OpenAI TTS API
         response = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice="nova",
+            model=narration_settings.ai_model,
+            voice=narration_settings.voice_type,
             input=content_text,
             instructions=instructions,
             response_format="mp3",
