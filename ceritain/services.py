@@ -103,7 +103,21 @@ def mix_voice_with_bgm(voice_audio_bytes: bytes, bgm_path: str = None) -> bytes:
     voice = voice.fade_in(1000).fade_out(2000)  # 1 second fade in, 2 seconds fade out
     
     # Determine BGM path to use
-    bgm_file_path = bgm_path or DEFAULT_BGM_PATH
+    # Priority:
+    # 1. bgm_path argument (if provided)
+    # 2. detailed in StoryNarrationSettings (if exists)
+    # 3. DEFAULT_BGM_PATH (fallback)
+    
+    settings_bgm_path = None
+    try:
+        from .models import StoryNarrationSettings
+        narration_settings = StoryNarrationSettings.get_solo()
+        if narration_settings.background_music:
+            settings_bgm_path = narration_settings.background_music.path
+    except Exception as e:
+        logger.warning(f"Failed to get BGM from settings: {e}")
+
+    bgm_file_path = bgm_path or settings_bgm_path or DEFAULT_BGM_PATH
     
     # If no BGM path configured or file doesn't exist, return processed voice only
     if not bgm_file_path or not os.path.exists(bgm_file_path):
@@ -142,7 +156,7 @@ def mix_voice_with_bgm(voice_audio_bytes: bytes, bgm_path: str = None) -> bytes:
     bgm = bgm[:len(voice)]
     
     # 3. Lower BGM volume (-12 to -18 dB ideal for monologue)
-    bgm = bgm - 12  # Softer than before
+    bgm = bgm - 10  # Softer than before
     
     # 4. Fade in & fade out BGM for smooth transitions
     bgm = bgm.fade_in(5000).fade_out(3000)  # 5 seconds fade in, 3 seconds fade out
