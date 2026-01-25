@@ -368,6 +368,11 @@ EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 # ------------------------------------------------------------------------------
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 
+# Story Narration BGM (Background Music)
+# ------------------------------------------------------------------------------
+# Path to background music file for story narration audio mixing
+STORY_NARRATION_BGM_PATH = str(BASE_DIR / "palpal" / "media" / "bgm" / "background_music.mp3")
+
 # UNFOLD DJANGO ADMIN CONFIGURATION
 # ==========================================
 UNFOLD = {
