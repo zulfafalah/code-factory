@@ -1,6 +1,8 @@
 from django.contrib import admin
-from .models import StoryNarration
+from solo.admin import SingletonModelAdmin
+from .models import StoryNarration, StoryNarrationSettings
 from unfold.admin import ModelAdmin
+from django.utils.translation import gettext_lazy as _
 
 # Register your models here.
 
@@ -48,4 +50,25 @@ class StoryNarrationAdmin(ModelAdmin):
             "classes": ("tabs",),
         }),
     )
+
+@admin.register(StoryNarrationSettings)
+class StoryNarrationSettingsAdmin(SingletonModelAdmin, ModelAdmin):
+    """Admin configuration for Story Narration Settings (singleton)."""
+    readonly_fields = ["total_token_used"]
+    
+    fieldsets = (
+        (_("Maintenance"), {
+            "fields": ("is_maintenance",),
+            "description": _("Enable maintenance mode to disable story narration."),
+        }),
+        (_("Token Configuration"), {
+            "fields": ("daily_token_quota", "total_token_used"),
+            "description": _("Configure daily token usage limits."),
+        }),
+        (_("AI Configuration"), {
+            "fields": ("ai_model", "voice_type", "background_music"),
+            "description": _("Configure the AI model for story narration."),
+        }),
+    )
+
         
