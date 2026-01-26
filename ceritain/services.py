@@ -23,10 +23,10 @@ DEFAULT_BGM_PATH = getattr(settings, 'STORY_NARRATION_BGM_PATH', None)
 
 def generate_title(text: str) -> dict:
     """
-    Generate a concise title (2-5 words) from a paragraph using OpenAI API.
+    Generate a concise title (2-5 words) from the first paragraph using OpenAI API.
     
     Args:
-        text: The content text to generate a title from
+        text: The content text to generate a title from (only first paragraph will be used)
         
     Returns:
         dict containing:
@@ -36,10 +36,17 @@ def generate_title(text: str) -> dict:
             - total_token: Total tokens used (input + output)
     """
     from .models import StoryNarrationSettings
-    
+    print("len text", len(text))
     narration_settings = StoryNarrationSettings.get_solo()
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
     
+    # Extract only the first 500 words to optimize token usage
+    words = text.strip().split()
+    first_100_words = ' '.join(words[:100])
+    
+    # Use only the first 500 words for title generation
+    input_text = first_100_words
+    print("len input_text", len(input_text))
     response = client.responses.create(
         model=narration_settings.ai_model_txt,
         input=[
@@ -52,7 +59,7 @@ def generate_title(text: str) -> dict:
             },
             {
                 "role": "user",
-                "content": text
+                "content": input_text
             }
         ],
         max_output_tokens=16,  # Minimum required by API, enough for 5 words
