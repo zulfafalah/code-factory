@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from .models import Manhwa
 from .serializers import (
@@ -13,6 +14,17 @@ from .serializers import (
 )
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Kokorean"]),
+    create=extend_schema(tags=["Kokorean"]),
+    retrieve=extend_schema(tags=["Kokorean"]),
+    update=extend_schema(tags=["Kokorean"]),
+    partial_update=extend_schema(tags=["Kokorean"]),
+    destroy=extend_schema(tags=["Kokorean"]),
+    pending=extend_schema(tags=["Kokorean"]),
+    completed=extend_schema(tags=["Kokorean"]),
+    failed=extend_schema(tags=["Kokorean"]),
+)
 class ManhwaViewSet(viewsets.ModelViewSet):
     """
     ViewSet for CRUD Manhwa

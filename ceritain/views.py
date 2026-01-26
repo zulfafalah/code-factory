@@ -27,6 +27,7 @@ class StoryNarrationCreateAPIView(APIView):
     @extend_schema(
         summary="Create Story Narration",
         description="Create a new Story Narration with content text and optional source URL",
+        tags=["Ceritain"],
         request=StoryNarrationCreateSerializer,
         responses={
             201: StoryNarrationCreateResponseSerializer,
@@ -87,6 +88,7 @@ class StoryNarrationStatusAPIView(APIView):
     @extend_schema(
         summary="Get Story Narration Status",
         description="Check the progress/status of a Story Narration by ID",
+        tags=["Ceritain"],
         responses={
             200: StoryNarrationSerializer,
             404: "Story Narration not found",

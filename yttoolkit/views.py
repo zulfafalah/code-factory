@@ -33,6 +33,7 @@ class YouTubeMP3ViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         summary="List all downloads",
         description="Get a list of all YouTube MP3 downloads",
+        tags=["YouTube Toolkit"],
         responses={200: YouTubeMP3Serializer(many=True)},
     )
     def list(self, request, *args, **kwargs):
@@ -41,6 +42,7 @@ class YouTubeMP3ViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         summary="Get download details",
         description="Get details of a specific YouTube MP3 download",
+        tags=["YouTube Toolkit"],
         responses={200: YouTubeMP3Serializer},
     )
     def retrieve(self, request, *args, **kwargs):
@@ -49,6 +51,7 @@ class YouTubeMP3ViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         summary="Download MP3 file",
         description="Download the actual MP3 file",
+        tags=["YouTube Toolkit"],
         responses={
             200: "MP3 file content",
             404: "File not found or not ready",
@@ -91,6 +94,7 @@ class DownloadStartAPIView(APIView):
     @extend_schema(
         summary="Start download",
         description="Start a new YouTube MP3 download",
+        tags=["YouTube Toolkit"],
         request=YouTubeMP3CreateSerializer,
         responses={
             200: DownloadStartResponseSerializer,
@@ -164,6 +168,7 @@ class CookieRefreshAPIView(APIView):
     @extend_schema(
         summary="Refresh YouTube cookies",
         description="Trigger a background task to refresh YouTube cookies for authentication",
+        tags=["YouTube Toolkit"],
         request={
             "application/json": {
                 "type": "object",
@@ -399,6 +404,7 @@ class CookieRefreshAPIView(APIView):
     @extend_schema(
         summary="Get cookie refresh status",
         description="Get information about cookie file and authentication status",
+        tags=["YouTube Toolkit"],
         responses={
             200: {
                 "type": "object",
