@@ -23,8 +23,8 @@ class StoryNarrationAdmin(ModelAdmin):
     fieldsets = (
         ("General", {
             "fields": (
-                "title",
                 "content_text",
+                "title",
                 "source_url",
                 "final_content",
                 "status",

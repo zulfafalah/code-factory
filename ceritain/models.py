@@ -11,7 +11,7 @@ class StoryNarration(models.Model):
         ('failed', 'Failed'),
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, blank=True, null=True)
     content_text = models.TextField()
     source_url = models.URLField(blank=True, null=True)
     final_content = models.TextField(blank=True, null=True)

@@ -21,6 +21,57 @@ logger = logging.getLogger(__name__)
 DEFAULT_BGM_PATH = getattr(settings, 'STORY_NARRATION_BGM_PATH', None)
 
 
+def generate_title(text: str) -> dict:
+    """
+    Generate a concise title (2-5 words) from a paragraph using OpenAI API.
+    
+    Args:
+        text: The content text to generate a title from
+        
+    Returns:
+        dict containing:
+            - title: The generated title string
+            - input_token: Number of input tokens used
+            - output_token: Number of output tokens used
+            - total_token: Total tokens used (input + output)
+    """
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    
+    response = client.responses.create(
+        model="gpt-4.1-nano",
+        input=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an assistant that creates a concise title "
+                    "from a paragraph. The title must be 2 to 5 words only."
+                )
+            },
+            {
+                "role": "user",
+                "content": text
+            }
+        ],
+        max_output_tokens=10,  # Enough for 5 words
+        temperature=0.3  # Consistent and focused output
+    )
+    
+    # Extract title from response
+    title = response.output_text.strip()
+    
+    # Get token usage from response
+    input_token = response.usage.input_tokens
+    output_token = response.usage.output_tokens
+    total_token = input_token + output_token
+    
+    return {
+        "title": title,
+        "input_token": input_token,
+        "output_token": output_token,
+        "total_token": total_token
+    }
+
+
 def process_story_narration(story_narration):
     """
     Main function to process StoryNarration.
