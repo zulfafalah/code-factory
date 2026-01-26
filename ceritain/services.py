@@ -29,6 +29,30 @@ def process_story_narration(story_narration):
     Args:
         story_narration: StoryNarration instance to be processed
     """
+    from .models import StoryNarrationSettings
+
+    # Check for maintenance mode
+    try:
+        settings = StoryNarrationSettings.get_solo()
+        if settings.is_maintenance:
+            logger.info(f"Maintenance mode active. Skipping StoryNarration {story_narration.id}")
+            story_narration.message_response = "System is currently under maintenance. Please try again later."
+            story_narration.status = 'failed'
+            story_narration.save(update_fields=['message_response', 'status'])
+            return
+
+        if settings.total_token_used >= settings.daily_token_quota:
+            logger.info(f"Daily token quota exceeded. Skipping StoryNarration {story_narration.id}")
+            story_narration.message_response = "Daily token quota exceeded. Please try again tomorrow."
+            story_narration.status = 'failed'
+            story_narration.save(update_fields=['message_response', 'status'])
+            return
+    except Exception as e:
+        logger.error(f"Error checking maintenance mode: {e}")
+        # Proceed with caution or fail? Assuming we proceed if check fails, or fail safe?
+        # Let's proceed as this is likely a DB issue which will be caught later or harmless.
+        pass
+
     # Check if source_url exists
     if story_narration.source_url:
         # Process from URL
@@ -86,7 +110,21 @@ def mix_voice_with_bgm(voice_audio_bytes: bytes, bgm_path: str = None) -> bytes:
     voice = voice.fade_in(1000).fade_out(2000)  # 1 second fade in, 2 seconds fade out
     
     # Determine BGM path to use
-    bgm_file_path = bgm_path or DEFAULT_BGM_PATH
+    # Priority:
+    # 1. bgm_path argument (if provided)
+    # 2. detailed in StoryNarrationSettings (if exists)
+    # 3. DEFAULT_BGM_PATH (fallback)
+    
+    settings_bgm_path = None
+    try:
+        from .models import StoryNarrationSettings
+        narration_settings = StoryNarrationSettings.get_solo()
+        if narration_settings.background_music:
+            settings_bgm_path = narration_settings.background_music.path
+    except Exception as e:
+        logger.warning(f"Failed to get BGM from settings: {e}")
+
+    bgm_file_path = bgm_path or settings_bgm_path or DEFAULT_BGM_PATH
     
     # If no BGM path configured or file doesn't exist, return processed voice only
     if not bgm_file_path or not os.path.exists(bgm_file_path):
@@ -125,7 +163,7 @@ def mix_voice_with_bgm(voice_audio_bytes: bytes, bgm_path: str = None) -> bytes:
     bgm = bgm[:len(voice)]
     
     # 3. Lower BGM volume (-12 to -18 dB ideal for monologue)
-    bgm = bgm - 12  # Softer than before
+    bgm = bgm - 10  # Softer than before
     
     # 4. Fade in & fade out BGM for smooth transitions
     bgm = bgm.fade_in(5000).fade_out(3000)  # 5 seconds fade in, 3 seconds fade out
@@ -192,10 +230,13 @@ Pronunciation: Clear and precise, emphasizing key points to reinforce engagement
 
 Pauses: Brief pauses after important points, highlighting key information."""
 
+        from .models import StoryNarrationSettings
+        narration_settings = StoryNarrationSettings.get_solo()
+
         # Generate speech using OpenAI TTS API
         response = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice="nova",
+            model=narration_settings.ai_model,
+            voice=narration_settings.voice_type,
             input=content_text,
             instructions=instructions,
             response_format="mp3",
@@ -250,13 +291,18 @@ Pauses: Brief pauses after important points, highlighting key information."""
             'final_content',
             'status'
         ])
+
+        # Update total_token_used in settings
+        narration_settings.total_token_used += story_narration.total_token
+        narration_settings.save(update_fields=['total_token_used'])
         
         logger.info(f"StoryNarration {story_narration.id} processed successfully")
         
     except Exception as e:
         logger.error(f"Error processing StoryNarration {story_narration.id}: {str(e)}")
         # Use update() to avoid transaction issues - this creates a new query
-        from .models import StoryNarration
+        # Use update() to avoid transaction issues - this creates a new query
+        from .models import StoryNarration, StoryNarrationSettings
         StoryNarration.objects.filter(id=story_narration.id).update(
             status='failed',
             final_content=f"Error: {str(e)}"

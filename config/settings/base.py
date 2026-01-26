@@ -86,6 +86,7 @@ THIRD_PARTY_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "drf_spectacular",
+    "solo",
 ]
 
 LOCAL_APPS = [
@@ -461,6 +462,11 @@ UNFOLD = {
                         "title": _("Story Narration"),
                         "icon": "book",
                         "link": reverse_lazy("admin:ceritain_storynarration_changelist"),
+                    },
+                    {
+                        "title": _("Settings"),
+                        "icon": "settings",
+                        "link": reverse_lazy("admin:ceritain_storynarrationsettings_changelist"),
                     },
                 ],
             },

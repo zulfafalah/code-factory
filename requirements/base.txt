@@ -45,3 +45,6 @@ openai==1.93.3  # https://github.com/openai/openai-python
 
 # Audio Processing
 pydub==0.25.1  # https://github.com/jiaaro/pydub
+
+# Django Singleton Model
+django-solo==2.4.0  # https://github.com/lazybird/django-solo
