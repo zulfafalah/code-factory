@@ -52,7 +52,7 @@ def generate_title(text: str) -> dict:
                 "content": text
             }
         ],
-        max_output_tokens=10,  # Enough for 5 words
+        max_output_tokens=16,  # Minimum required by API, enough for 5 words
         temperature=0.3  # Consistent and focused output
     )
     
@@ -265,6 +265,24 @@ def process_from_content(story_narration):
             story_narration.save(update_fields=['status'])
             return
         
+        # Generate title from content if not already set
+        title_tokens = {"input_token": 0, "output_token": 0, "total_token": 0}
+        if not story_narration.title:
+            try:
+                logger.info(f"Generating title for StoryNarration {story_narration.id}")
+                title_result = generate_title(content_text)
+                print("title_result", title_result)
+                story_narration.title = title_result["title"]
+                title_tokens = {
+                    "input_token": title_result["input_token"],
+                    "output_token": title_result["output_token"],
+                    "total_token": title_result["total_token"]
+                }
+                logger.info(f"Generated title: {story_narration.title}")
+            except Exception as e:
+                logger.warning(f"Failed to generate title: {e}")
+                # Continue without title if generation fails
+        
         # Initialize OpenAI client
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
         
@@ -310,22 +328,22 @@ Pauses: Brief pauses after important points, highlighting key information."""
             save=False
         )
         
-        # Estimate token usage
+        # Estimate token usage for TTS
         # OpenAI TTS API doesn't return token counts directly
         # We estimate based on text length (roughly 4 chars per token)
-        input_tokens = len(content_text) // 4
+        tts_input_tokens = len(content_text) // 4
         instruction_tokens = len(instructions) // 4
-        total_input_tokens = input_tokens + instruction_tokens
+        tts_total_input_tokens = tts_input_tokens + instruction_tokens
         
         # Output tokens are estimated based on audio duration
         # For TTS, we can estimate ~150 words per minute, ~0.75 tokens per word
         word_count = len(content_text.split())
-        estimated_output_tokens = int(word_count * 0.75)
+        tts_estimated_output_tokens = int(word_count * 0.75)
         
-        # Update token counts
-        story_narration.input_token = total_input_tokens
-        story_narration.output_token = estimated_output_tokens
-        story_narration.total_token = total_input_tokens + estimated_output_tokens
+        # Update token counts (include title generation tokens)
+        story_narration.input_token = tts_total_input_tokens + title_tokens["input_token"]
+        story_narration.output_token = tts_estimated_output_tokens + title_tokens["output_token"]
+        story_narration.total_token = story_narration.input_token + story_narration.output_token
         
         # Update final_content with info about the generated audio
         story_narration.final_content = f"Audio generated successfully. File: {filename}"
@@ -335,6 +353,7 @@ Pauses: Brief pauses after important points, highlighting key information."""
         
         # Save all changes
         story_narration.save(update_fields=[
+            'title',
             'result_file',
             'input_token',
             'output_token', 
