@@ -40,6 +40,13 @@ def process_story_narration(story_narration):
             story_narration.status = 'failed'
             story_narration.save(update_fields=['message_response', 'status'])
             return
+
+        if settings.total_token_used >= settings.daily_token_quota:
+            logger.info(f"Daily token quota exceeded. Skipping StoryNarration {story_narration.id}")
+            story_narration.message_response = "Daily token quota exceeded. Please try again tomorrow."
+            story_narration.status = 'failed'
+            story_narration.save(update_fields=['message_response', 'status'])
+            return
     except Exception as e:
         logger.error(f"Error checking maintenance mode: {e}")
         # Proceed with caution or fail? Assuming we proceed if check fails, or fail safe?
@@ -284,6 +291,10 @@ Pauses: Brief pauses after important points, highlighting key information."""
             'final_content',
             'status'
         ])
+
+        # Update total_token_used in settings
+        narration_settings.total_token_used += story_narration.total_token
+        narration_settings.save(update_fields=['total_token_used'])
         
         logger.info(f"StoryNarration {story_narration.id} processed successfully")
         
