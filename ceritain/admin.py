@@ -72,7 +72,7 @@ class StoryNarrationSettingsAdmin(SingletonModelAdmin, ModelAdmin):
             "description": _("Configure daily token usage limits."),
         }),
         (_("AI Configuration"), {
-            "fields": ("ai_model", "voice_type", "background_music"),
+            "fields": ("ai_model", "voice_type", "background_music", "ai_model_txt"),
             "description": _("Configure the AI model for story narration."),
         }),
     )

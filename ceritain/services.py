@@ -35,10 +35,13 @@ def generate_title(text: str) -> dict:
             - output_token: Number of output tokens used
             - total_token: Total tokens used (input + output)
     """
+    from .models import StoryNarrationSettings
+    
+    narration_settings = StoryNarrationSettings.get_solo()
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
     
     response = client.responses.create(
-        model="gpt-4.1-nano",
+        model=narration_settings.ai_model_txt,
         input=[
             {
                 "role": "system",

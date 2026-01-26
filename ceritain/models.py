@@ -41,7 +41,12 @@ class StoryNarrationSettings(SingletonModel):
         ('tts-1-hd', 'TTS-1 HD'),
         ('gpt-4o-mini-tts', 'GPT-4o Mini TTS'),
     )
+    AI_MODEL_CHOICES_TXT = (
+        ('gpt-4o-mini', 'GPT-4o Mini'),
+        ('gpt-4.1-nano', 'GPT-4.1 Nano'),
+    )
     ai_model = models.CharField(max_length=100, choices=AI_MODEL_CHOICES, default='gpt-4o-mini-tts', help_text="AI model to use for TTS")
+    ai_model_txt = models.CharField(max_length=100, choices=AI_MODEL_CHOICES_TXT, default='gpt-4.1-nano', help_text="AI model to use for Generate Text")
     total_token_used = models.IntegerField(default=0, help_text="Total tokens used")
     VOICE_CHOICES = (
         ('alloy', 'Alloy'),
