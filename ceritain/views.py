@@ -197,25 +197,27 @@ class StoryNarrationListAPIView(generics.ListAPIView):
     API View to list StoryNarration with filter and ordering support.
     
     Supports:
-    - Search: ?search=<keyword> - searches in title, content_text, source_url
-    - Ordering: ?ordering=<field> - order by created_at, updated_at, status, title, total_token
+    - Search: ?search=<keyword> - searches in title, content_text, source_url, created_by email
+    - Ordering: ?ordering=<field> - order by created_at, updated_at, status, title, total_token, created_by
       Use -<field> for descending order (e.g., ?ordering=-created_at)
     - Status filter: ?status=<status> - filter by status (draft, processing, done, failed)
+    - Created by filter: ?created_by=<user_id> - filter by created_by user ID
     """
 
     permission_classes = [AllowAny]
     serializer_class = StoryNarrationListSerializer
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ["title", "content_text", "source_url"]
-    ordering_fields = ["created_at", "updated_at", "status", "title", "total_token"]
+    search_fields = ["title", "content_text", "source_url", "created_by__email"]
+    ordering_fields = ["created_at", "updated_at", "status", "title", "total_token", "created_by"]
     ordering = ["-created_at"]  # Default ordering
 
     @extend_schema(
         summary="List Story Narrations",
         description="Get list of Story Narrations with search and ordering support. "
-                    "Use ?search=<keyword> to search in title, content_text, source_url. "
+                    "Use ?search=<keyword> to search in title, content_text, source_url, created_by email. "
                     "Use ?ordering=<field> to order results (prefix with - for descending). "
-                    "Use ?status=<status> to filter by status.",
+                    "Use ?status=<status> to filter by status. "
+                    "Use ?created_by=<user_id> to filter by user who created the narration.",
         tags=["Ceritain"],
         responses={
             200: StoryNarrationListSerializer(many=True),
@@ -226,6 +228,11 @@ class StoryNarrationListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = StoryNarration.objects.all()
+        
+        # Filter by created_by if provided
+        created_by_filter = self.request.query_params.get("created_by")
+        if created_by_filter:
+            queryset = queryset.filter(created_by_id=created_by_filter)
         
         # Filter by status if provided
         status_filter = self.request.query_params.get("status")
