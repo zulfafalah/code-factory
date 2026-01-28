@@ -4,7 +4,8 @@ import os
 
 from django.http import FileResponse
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import generics, status
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +14,7 @@ from .models import StoryNarration
 from .serializers import (
     StoryNarrationCreateResponseSerializer,
     StoryNarrationCreateSerializer,
+    StoryNarrationListSerializer,
     StoryNarrationSerializer,
 )
 from .tasks import process_story_narration_task
@@ -188,3 +190,47 @@ class StoryNarrationStreamingAPIView(APIView):
                 {"error": f"Story Narration with ID {story_narration_id} not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+
+class StoryNarrationListAPIView(generics.ListAPIView):
+    """
+    API View to list StoryNarration with filter and ordering support.
+    
+    Supports:
+    - Search: ?search=<keyword> - searches in title, content_text, source_url
+    - Ordering: ?ordering=<field> - order by created_at, updated_at, status, title, total_token
+      Use -<field> for descending order (e.g., ?ordering=-created_at)
+    - Status filter: ?status=<status> - filter by status (draft, processing, done, failed)
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = StoryNarrationListSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["title", "content_text", "source_url"]
+    ordering_fields = ["created_at", "updated_at", "status", "title", "total_token"]
+    ordering = ["-created_at"]  # Default ordering
+
+    @extend_schema(
+        summary="List Story Narrations",
+        description="Get list of Story Narrations with search and ordering support. "
+                    "Use ?search=<keyword> to search in title, content_text, source_url. "
+                    "Use ?ordering=<field> to order results (prefix with - for descending). "
+                    "Use ?status=<status> to filter by status.",
+        tags=["Ceritain"],
+        responses={
+            200: StoryNarrationListSerializer(many=True),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = StoryNarration.objects.all()
+        
+        # Filter by status if provided
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        return queryset
+
