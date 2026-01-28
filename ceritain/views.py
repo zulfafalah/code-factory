@@ -1,5 +1,8 @@
 import logging
+import mimetypes
+import os
 
+from django.http import FileResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -116,6 +119,69 @@ class StoryNarrationStatusAPIView(APIView):
             }
             
             return Response(response_data, status=status.HTTP_200_OK)
+
+        except StoryNarration.DoesNotExist:
+            return Response(
+                {"error": f"Story Narration with ID {story_narration_id} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+
+class StoryNarrationStreamingAPIView(APIView):
+    """
+    API View to stream audio file from StoryNarration
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Stream Story Narration Audio",
+        description="Stream the audio file from a completed Story Narration by ID",
+        tags=["Ceritain"],
+        responses={
+            200: {"type": "string", "format": "binary", "description": "Audio file stream"},
+            404: "Story Narration not found or no audio file available",
+        },
+    )
+    def get(self, request, story_narration_id):
+        """Stream the audio file from a StoryNarration"""
+        try:
+            story_narration = StoryNarration.objects.get(id=story_narration_id)
+
+            # Check if result_file exists
+            if not story_narration.result_file:
+                return Response(
+                    {"error": f"No audio file available for Story Narration ID {story_narration_id}"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Get the file path
+            file_path = story_narration.result_file.path
+
+            # Check if file exists on disk
+            if not os.path.exists(file_path):
+                return Response(
+                    {"error": "Audio file not found on server"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Determine content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if not content_type:
+                content_type = "audio/mpeg"  # Default to mp3
+
+            # Get file name for Content-Disposition header
+            file_name = os.path.basename(file_path)
+
+            # Return streaming response
+            response = FileResponse(
+                open(file_path, "rb"),
+                content_type=content_type,
+            )
+            response["Content-Disposition"] = f'inline; filename="{file_name}"'
+            response["Accept-Ranges"] = "bytes"
+
+            return response
 
         except StoryNarration.DoesNotExist:
             return Response(
