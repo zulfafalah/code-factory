@@ -63,3 +63,40 @@ class StoryNarrationCreateResponseSerializer(serializers.Serializer):
     task_id = serializers.CharField(required=False)
     story_narration_id = serializers.IntegerField(required=False)
     status = serializers.CharField(required=False)
+
+
+class StoryNarrationListSerializer(serializers.ModelSerializer):
+    """Serializer for listing StoryNarration with optimized fields"""
+    
+    content_text_preview = serializers.SerializerMethodField()
+    created_by_email = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StoryNarration
+        fields = [
+            "id",
+            "status",
+            "title",
+            "content_text_preview",
+            "source_url",
+            "created_at",
+            "updated_at",
+            "total_token",
+            "result_file",
+            "created_by",
+            "created_by_email",
+        ]
+        read_only_fields = fields
+    
+    def get_content_text_preview(self, obj):
+        """Return first 200 characters of content_text"""
+        if obj.content_text and len(obj.content_text) > 200:
+            return obj.content_text[:200] + "..."
+        return obj.content_text
+    
+    def get_created_by_email(self, obj):
+        """Return the email of the user who created the story narration"""
+        if obj.created_by:
+            return obj.created_by.email
+        return None
+
