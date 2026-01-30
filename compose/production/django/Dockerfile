@@ -59,8 +59,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
 
-# Install Chrome dependencies and Google Chrome (only on amd64, skip on ARM64/Apple Silicon)
+# Install Chrome/Chromium based on architecture
+# Google Chrome is only available for amd64, use Chromium for ARM64
 RUN if [ "$INSTALL_CHROME" = "true" ]; then \
+  ARCH=$(dpkg --print-architecture) && \
   apt-get update && apt-get install --no-install-recommends -y \
   fonts-liberation \
   libasound2 \
@@ -97,11 +99,21 @@ RUN if [ "$INSTALL_CHROME" = "true" ]; then \
   lsb-release \
   xdg-utils \
   && rm -rf /var/lib/apt/lists/* \
-  && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
-  && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-  && apt-get update \
-  && apt-get install -y google-chrome-stable \
-  && rm -rf /var/lib/apt/lists/*; \
+  && if [ "$ARCH" = "amd64" ]; then \
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/google-chrome-stable /usr/bin/google-chrome; \
+  else \
+    echo "Installing Chromium for $ARCH architecture" \
+    && apt-get update \
+    && apt-get install -y chromium chromium-driver \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/chromium /usr/bin/google-chrome-stable \
+    && ln -sf /usr/bin/chromium /usr/bin/google-chrome; \
+  fi; \
   else \
   echo "Skipping Chrome installation (INSTALL_CHROME=$INSTALL_CHROME)"; \
   fi
@@ -184,5 +196,15 @@ RUN DATABASE_URL="" \
   EMAIL_USE_TLS="False" \
   EMAIL_USE_SSL="False" \
   python manage.py compilemessages
+
+# Collect static files during build with production settings
+RUN DATABASE_URL="" \
+  CELERY_BROKER_URL="" \
+  DJANGO_SETTINGS_MODULE="config.settings.production" \
+  DJANGO_SECRET_KEY="build-time-secret-key-not-used-in-production" \
+  SENTRY_DSN="" \
+  DJANGO_ADMIN_URL="admin/" \
+  REDIS_URL="" \
+  python manage.py collectstatic --noinput
 
 ENTRYPOINT ["/entrypoint"]
