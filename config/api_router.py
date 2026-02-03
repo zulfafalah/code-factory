@@ -7,7 +7,12 @@ from palpal.users.api.views import UserViewSet
 from yttoolkit.views import DownloadStartAPIView
 from yttoolkit.views import YouTubeMP3ViewSet
 from kokorean.views import ManhwaViewSet
-from ceritain.views import StoryNarrationCreateAPIView, StoryNarrationStatusAPIView
+from ceritain.views import (
+    StoryNarrationCreateAPIView,
+    StoryNarrationListAPIView,
+    StoryNarrationStatusAPIView,
+    StoryNarrationStreamingAPIView,
+)
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
 
@@ -29,6 +34,11 @@ urlpatterns = [
     ),
     # ceritain API endpoints
     path(
+        "v1/ceritain/story-narration/",
+        StoryNarrationListAPIView.as_view(),
+        name="v1_list_story_narration",
+    ),
+    path(
         "v1/ceritain/story-narration/create",
         StoryNarrationCreateAPIView.as_view(),
         name="v1_create_story_narration",
@@ -38,4 +48,10 @@ urlpatterns = [
         StoryNarrationStatusAPIView.as_view(),
         name="v1_story_narration_status",
     ),
+    path(
+        "v1/ceritain/story-narration/<int:story_narration_id>/streaming",
+        StoryNarrationStreamingAPIView.as_view(),
+        name="v1_story_narration_streaming",
+    ),
 ]
+
