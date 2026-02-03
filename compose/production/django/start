@@ -6,6 +6,7 @@ set -o nounset
 
 export DJANGO_SETTINGS_MODULE="config.settings.production"
 
-python /app/manage.py collectstatic --noinput
+# collectstatic is already run during Docker build (see Dockerfile line 208)
+# Running it here causes permission issues, so we skip it
 
 exec /usr/local/bin/gunicorn config.asgi --bind 0.0.0.0:5000 --chdir=/app -k uvicorn_worker.UvicornWorker

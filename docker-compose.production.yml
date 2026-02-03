@@ -2,7 +2,6 @@ volumes:
   production_postgres_data: {}
   production_postgres_data_backups: {}
   production_django_media: {}
-  production_django_static: {}
   production_redis_data: {}
 
 
@@ -19,7 +18,6 @@ services:
     volumes:
       - production_django_media:/app/palpal/media
       - /var/www/palpal/media:/app/palpal/media
-      - /var/www/palpal/static:/app/staticfiles
     depends_on:
       - postgres
       - redis
