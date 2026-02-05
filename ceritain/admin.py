@@ -58,7 +58,7 @@ class StoryNarrationAdmin(ModelAdmin):
     )
 
 @admin.register(StoryNarrationSettings)
-class StoryNarrationSettingsAdmin(SingletonModelAdmin, ModelAdmin):
+class StoryNarrationSettingsAdmin(ModelAdmin, SingletonModelAdmin):
     """Admin configuration for Story Narration Settings (singleton)."""
     readonly_fields = ["total_token_used"]
     
