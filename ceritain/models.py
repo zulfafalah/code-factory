@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from solo.models import SingletonModel
 
@@ -25,6 +26,24 @@ class StoryNarration(models.Model):
     total_token = models.IntegerField(default=0)
     result_file = models.FileField(upload_to='story_narration_results/', blank=True, null=True)
     message_response = models.TextField(blank=True, null=True)
+
+    def clean(self):
+        """Validate token quota before saving new StoryNarration."""
+        super().clean()
+        # Only validate on creation (when pk is None)
+        if self.pk is None:
+            narration_settings = StoryNarrationSettings.get_solo()
+            if narration_settings.total_token_used >= narration_settings.daily_token_quota:
+                raise ValidationError(
+                    "Daily token quota exceeded. Please try again tomorrow."
+                )
+
+    def save(self, *args, **kwargs):
+        """Override save to ensure clean() validation runs."""
+        # Only run full_clean on creation to avoid issues with updates
+        if self.pk is None:
+            self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title or ""
