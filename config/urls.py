@@ -1,5 +1,8 @@
 # ruff: noqa
 from django.conf import settings
+
+# Import celery beat admin to register Unfold-styled admin classes
+from config import celery_beat_admin  # noqa: F401
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns

@@ -547,6 +547,28 @@ UNFOLD = {
                 ],
             },
             {
+                "title": _("Celery Beat"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Periodic Tasks"),
+                        "icon": "schedule",
+                        "link": reverse_lazy("admin:django_celery_beat_periodictask_changelist"),
+                    },
+                    {
+                        "title": _("Interval Schedules"),
+                        "icon": "timer",
+                        "link": reverse_lazy("admin:django_celery_beat_intervalschedule_changelist"),
+                    },
+                    {
+                        "title": _("Crontab Schedules"),
+                        "icon": "event_repeat",
+                        "link": reverse_lazy("admin:django_celery_beat_crontabschedule_changelist"),
+                    },
+                ],
+            },
+            {
                 "title": _("Administration"),
                 "separator": True,
                 "collapsible": False,
