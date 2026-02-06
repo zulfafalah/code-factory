@@ -8,6 +8,7 @@ to provide a consistent admin theme across all admin pages.
 from django import forms
 from django.contrib import admin
 from unfold.admin import ModelAdmin
+from unfold.widgets import UnfoldAdminSelectWidget
 
 from celery import current_app
 from django_celery_beat.models import (
@@ -36,9 +37,7 @@ class PeriodicTaskForm(forms.ModelForm):
         choices=[],
         required=True,
         help_text="Select a registered Celery task",
-        widget=forms.Select(attrs={
-            'class': 'border bg-white font-medium rounded-md shadow-sm text-font-default-light text-sm focus:ring focus:ring-primary-300 focus:border-primary-600 focus:outline-none w-full dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:focus:border-primary-600 dark:focus:ring-primary-700 px-3 py-2 max-w-2xl'
-        }),
+        widget=UnfoldAdminSelectWidget(),
     )
     
     class Meta:
