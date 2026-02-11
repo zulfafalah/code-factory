@@ -123,6 +123,72 @@ def process_story_narration(story_narration):
         process_from_content(story_narration)
 
 
+def extract_content_from_url(url: str) -> dict:
+    """
+    Extract content from a Medium article URL (via Freedium mirror).
+    
+    Args:
+        url: The URL to extract content from
+        
+    Returns:
+        dict containing:
+            - title: Article title
+            - author: Article author
+            - platform: Publishing platform
+            - paragraphs: Article content text
+            
+    Raises:
+        requests.exceptions.RequestException: If URL fetch fails
+        ValueError: If content extraction fails
+    """
+    import requests
+    from bs4 import BeautifulSoup
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    # Fetch content from URL
+    response = requests.get(url, headers=headers, timeout=30)
+    response.raise_for_status()
+    
+    # Parse HTML content
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Initialize result
+    result = {
+        "title": "",
+        "author": "",
+        "platform": "",
+        "paragraphs": ""
+    }
+    
+    # Extract title, author, and platform from page title
+    title_tag = soup.find('title')
+    if title_tag:
+        full_title = title_tag.get_text(strip=True)
+        
+        # Parse title format: "Title | by Author - Platform"
+        if " | by " in full_title and " - " in full_title:
+            title_part, rest = full_title.split(" | by ", 1)
+            author_part, platform = rest.rsplit(" - ", 1)
+            
+            result["title"] = title_part.strip()
+            result["author"] = author_part.strip()
+            result["platform"] = platform.strip()
+    
+    # Extract paragraphs/content
+    paragraphs = soup.find_all('div', class_='mt-8 main-content')
+    all_paragraphs = ' '.join([p.get_text(strip=True) for p in paragraphs])
+    
+    if not all_paragraphs:
+        raise ValueError("No content could be extracted from URL")
+    
+    result["paragraphs"] = all_paragraphs
+    
+    return result
+
+
 def process_from_url(story_narration):
     """
     Function to process StoryNarration from source_url.
@@ -131,12 +197,140 @@ def process_from_url(story_narration):
     Args:
         story_narration: StoryNarration instance with source_url
     """
-    # TODO: Implement logic to fetch content from URL
-    # - Fetch content from URL
-    # - Parse and extract text
-    # - Update content_text if needed
-    # - Further processing
-    pass
+    try:
+        # Update status to processing
+        story_narration.status = 'processing'
+        story_narration.save(update_fields=['status'])
+        
+        # Get source URL
+        source_url = story_narration.source_url
+        
+        if not source_url:
+            logger.warning(f"StoryNarration {story_narration.id} has no source_url")
+            story_narration.status = 'failed'
+            story_narration.message_response = "No source URL provided"
+            story_narration.save(update_fields=['status', 'message_response'])
+            return
+        
+        # Extract content from URL
+        logger.info(f"Extracting content from URL: {source_url}")
+        extracted_data = extract_content_from_url(source_url)
+        
+        # Update model fields with extracted data
+        story_narration.title = extracted_data["title"]
+        story_narration.author = extracted_data["author"]
+        story_narration.platform = extracted_data["platform"]
+        story_narration.content_text = extracted_data["paragraphs"]
+        story_narration.save(update_fields=['title', 'author', 'platform', 'content_text'])
+        
+        logger.info(f"Successfully extracted content. Title: {story_narration.title}, Author: {story_narration.author}")
+        
+        # Now process the content (similar to process_from_content but skip title generation)
+        # Initialize OpenAI client
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        
+        # TTS instructions for voice style
+        instructions = """Voice Affect: Calm, composed, and reassuring; project quiet authority and confidence.
+
+Tone: Sincere, empathetic, and gently authoritative—express genuine care while conveying competence.
+
+Pacing: Steady and moderate; unhurried enough to communicate care, yet efficient enough to demonstrate professionalism.
+
+Emotion: Genuine empathy and understanding; speak with warmth.
+
+Pronunciation: Clear and precise, emphasizing key points to reinforce engagement.
+
+Pauses: Brief pauses after important points, highlighting key information."""
+        
+        from .models import StoryNarrationSettings
+        narration_settings = StoryNarrationSettings.get_solo()
+        
+        # Generate speech using OpenAI TTS API
+        response = client.audio.speech.create(
+            model=narration_settings.ai_model,
+            voice=narration_settings.voice_type,
+            input=extracted_data["paragraphs"],
+            instructions=instructions,
+            response_format="mp3",
+        )
+        
+        # Get audio content from TTS
+        raw_audio_content = response.content
+        
+        # Mix voice with background music
+        logger.info(f"Mixing voice with BGM for StoryNarration {story_narration.id}")
+        audio_content = mix_voice_with_bgm(raw_audio_content)
+        
+        # Generate unique filename
+        filename = f"narration_{story_narration.id}_{uuid.uuid4().hex[:8]}.mp3"
+        
+        # Save audio file to result_file field
+        story_narration.result_file.save(
+            filename,
+            ContentFile(audio_content),
+            save=False
+        )
+        
+        # Estimate token usage for TTS (no title generation tokens needed)
+        # OpenAI TTS API doesn't return token counts directly
+        # We estimate based on text length (roughly 4 chars per token)
+        tts_input_tokens = len(extracted_data["paragraphs"]) // 4
+        instruction_tokens = len(instructions) // 4
+        tts_total_input_tokens = tts_input_tokens + instruction_tokens
+        
+        # Output tokens are estimated based on audio duration
+        # For TTS, we can estimate ~150 words per minute, ~0.75 tokens per word
+        word_count = len(extracted_data["paragraphs"].split())
+        tts_estimated_output_tokens = int(word_count * 0.75)
+        
+        # Update token counts (no title generation tokens)
+        story_narration.input_token = tts_total_input_tokens
+        story_narration.output_token = tts_estimated_output_tokens
+        story_narration.total_token = story_narration.input_token + story_narration.output_token
+        
+        # Update final_content with info about the generated audio
+        story_narration.final_content = f"Audio generated successfully from URL. File: {filename}"
+        
+        # Update status to done
+        story_narration.status = 'done'
+        
+        # Save all changes
+        story_narration.save(update_fields=[
+            'result_file',
+            'input_token',
+            'output_token',
+            'total_token',
+            'final_content',
+            'status'
+        ])
+        
+        # Update total_token_used in settings
+        narration_settings.total_token_used += story_narration.total_token
+        narration_settings.save(update_fields=['total_token_used'])
+        
+        logger.info(f"StoryNarration {story_narration.id} processed successfully from URL")
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching URL for StoryNarration {story_narration.id}: {str(e)}")
+        from .models import StoryNarration
+        StoryNarration.objects.filter(id=story_narration.id).update(
+            status='failed',
+            message_response=f"Error fetching URL: {str(e)}"
+        )
+    except ValueError as e:
+        logger.error(f"Error extracting content for StoryNarration {story_narration.id}: {str(e)}")
+        from .models import StoryNarration
+        StoryNarration.objects.filter(id=story_narration.id).update(
+            status='failed',
+            message_response=f"Error extracting content: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error processing StoryNarration from URL {story_narration.id}: {str(e)}")
+        from .models import StoryNarration
+        StoryNarration.objects.filter(id=story_narration.id).update(
+            status='failed',
+            message_response=f"Error: {str(e)}"
+        )
 
 
 def mix_voice_with_bgm(voice_audio_bytes: bytes, bgm_path: str = None) -> bytes:
