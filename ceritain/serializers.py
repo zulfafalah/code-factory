@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from urllib.parse import urlparse
 
 from .models import StoryNarration
 
@@ -18,6 +19,49 @@ class StoryNarrationCreateSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("Content text cannot be empty")
         return value.strip()
+    
+    def validate_source_url(self, value):
+        """
+        Validate that the URL is from Medium and manipulate it to use Freedium mirror.
+        
+        Rules:
+        1. If URL host is not freedium-mirror.cfd, wrap it with https://freedium-mirror.cfd/{url}
+        2. If URL is not from Medium, reject it
+        """
+        if not value:
+            return value
+        
+        # Parse the original URL
+        parsed_url = urlparse(value)
+        hostname = parsed_url.hostname
+        
+        if not hostname:
+            raise serializers.ValidationError("Invalid URL format")
+        
+        # Check if already using Freedium mirror
+        if hostname == "freedium-mirror.cfd":
+            # Extract the original URL from Freedium format
+            # Format: https://freedium-mirror.cfd/https://medium.com/...
+            path = parsed_url.path.lstrip('/')
+            if path.startswith('http'):
+                original_url = path
+                original_hostname = urlparse(original_url).hostname
+            else:
+                raise serializers.ValidationError("Invalid Freedium mirror URL format")
+        else:
+            # Not using Freedium mirror yet
+            original_url = value
+            original_hostname = hostname
+        
+        # Validate that the original URL is from Medium
+        if not (original_hostname == "medium.com" or original_hostname.endswith(".medium.com")):
+            raise serializers.ValidationError("URL must be from Medium (medium.com or its subdomains)")
+        
+        # If not already using Freedium mirror, wrap it
+        if hostname != "freedium-mirror.cfd":
+            return f"https://freedium-mirror.cfd/{value}"
+        
+        return value
 
 
 class StoryNarrationSerializer(serializers.ModelSerializer):
