@@ -60,3 +60,36 @@ def process_story_narration_task(self, story_narration_id):
         
         # Retry after 60 seconds
         raise self.retry(exc=e, countdown=60)
+
+
+@shared_task
+def reset_daily_token_usage():
+    """
+    Reset the total_token_used counter to 0 in StoryNarrationSettings.
+    This task is intended to be called by Celery Beat on a daily schedule.
+    
+    Returns:
+        dict: Result of the operation
+    """
+    StoryNarrationSettings = apps.get_model('ceritain', 'StoryNarrationSettings')
+    
+    try:
+        settings = StoryNarrationSettings.get_solo()
+        previous_value = settings.total_token_used
+        settings.total_token_used = 0
+        settings.save(update_fields=['total_token_used'])
+        
+        logger.info(f"Successfully reset total_token_used from {previous_value} to 0")
+        
+        return {
+            'success': True,
+            'previous_value': previous_value,
+            'message': 'Daily token usage reset successfully'
+        }
+        
+    except Exception as e:
+        logger.exception("Error resetting daily token usage")
+        return {
+            'success': False,
+            'error': str(e)
+        }
