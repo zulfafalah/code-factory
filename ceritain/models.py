@@ -20,8 +20,8 @@ class StoryNarration(models.Model):
     final_content = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='storynarration_created', null=True)
-    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='storynarration_updated', null=True)
+    created_by = models.CharField(max_length=255, blank=True, null=True)
+    updated_by = models.CharField(max_length=255, blank=True, null=True)
     
     input_token = models.IntegerField(default=0)
     output_token = models.IntegerField(default=0)
