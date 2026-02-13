@@ -229,9 +229,9 @@ def process_from_url(story_narration):
         from math import ceil
         wpm = 200  # Average words per minute for reading
         total_words = len(extracted_data["paragraphs"].split())
-        story_narration.estimated_read_time = ceil(total_words / wpm)
+        story_narration.estimated_read_time = ceil((total_words / wpm) * 60)  # Convert to seconds
         story_narration.save(update_fields=['estimated_read_time'])
-        logger.info(f"Calculated estimated read time: {story_narration.estimated_read_time} minutes for {total_words} words")
+        logger.info(f"Calculated estimated read time: {story_narration.estimated_read_time} seconds for {total_words} words")
         
         # Now process the content (similar to process_from_content but skip title generation)
         # Initialize OpenAI client
@@ -481,9 +481,9 @@ def process_from_content(story_narration):
         from math import ceil
         wpm = 200  # Average words per minute for reading
         total_words = len(content_text.split())
-        story_narration.estimated_read_time = ceil(total_words / wpm)
+        story_narration.estimated_read_time = ceil((total_words / wpm) * 60)  # Convert to seconds
         story_narration.save(update_fields=['estimated_read_time'])
-        logger.info(f"Calculated estimated read time: {story_narration.estimated_read_time} minutes for {total_words} words")
+        logger.info(f"Calculated estimated read time: {story_narration.estimated_read_time} seconds for {total_words} words")
         
         # Generate title from content if not already set
         title_tokens = {"input_token": 0, "output_token": 0, "total_token": 0}
