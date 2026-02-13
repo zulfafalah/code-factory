@@ -2,6 +2,8 @@ import logging
 import mimetypes
 import os
 
+from django.db.models import F
+
 from django.http import FileResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
@@ -175,6 +177,11 @@ class StoryNarrationStreamingAPIView(APIView):
             # Get file name for Content-Disposition header
             file_name = os.path.basename(file_path)
 
+            # Increment play count atomically
+            StoryNarration.objects.filter(id=story_narration_id).update(
+                play_count=F('play_count') + 1
+            )
+
             # Return streaming response
             response = FileResponse(
                 open(file_path, "rb"),
@@ -240,4 +247,28 @@ class StoryNarrationListAPIView(generics.ListAPIView):
             queryset = queryset.filter(status=status_filter)
         
         return queryset
+
+
+class StoryNarrationTrendingAPIView(generics.ListAPIView):
+    """
+    API View to get trending StoryNarrations.
+    Returns top 5 stories ordered by play_count (highest first).
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = StoryNarrationListSerializer
+
+    @extend_schema(
+        summary="Trending Story Narrations",
+        description="Get top 5 trending Story Narrations ordered by play_count descending.",
+        tags=["Ceritain"],
+        responses={
+            200: StoryNarrationListSerializer(many=True),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return StoryNarration.objects.filter(status="done").order_by("-play_count")[:5]
 

@@ -12,6 +12,7 @@ from ceritain.views import (
     StoryNarrationListAPIView,
     StoryNarrationStatusAPIView,
     StoryNarrationStreamingAPIView,
+    StoryNarrationTrendingAPIView,
 )
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
@@ -52,6 +53,11 @@ urlpatterns = [
         "v1/ceritain/story-narration/<int:story_narration_id>/streaming",
         StoryNarrationStreamingAPIView.as_view(),
         name="v1_story_narration_streaming",
+    ),
+    path(
+        "v1/ceritain/story-narration/trending",
+        StoryNarrationTrendingAPIView.as_view(),
+        name="v1_story_narration_trending",
     ),
 ]
 
