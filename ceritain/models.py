@@ -29,6 +29,7 @@ class StoryNarration(models.Model):
     result_file = models.FileField(upload_to='story_narration_results/', blank=True, null=True)
     message_response = models.TextField(blank=True, null=True)
     estimated_read_time = models.IntegerField(default=0)
+    play_count = models.IntegerField(default=0)
 
     def clean(self):
         """Validate token quota before saving new StoryNarration."""

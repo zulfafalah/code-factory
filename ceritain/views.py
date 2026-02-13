@@ -2,6 +2,8 @@ import logging
 import mimetypes
 import os
 
+from django.db.models import F
+
 from django.http import FileResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
@@ -174,6 +176,11 @@ class StoryNarrationStreamingAPIView(APIView):
 
             # Get file name for Content-Disposition header
             file_name = os.path.basename(file_path)
+
+            # Increment play count atomically
+            StoryNarration.objects.filter(id=story_narration_id).update(
+                play_count=F('play_count') + 1
+            )
 
             # Return streaming response
             response = FileResponse(
