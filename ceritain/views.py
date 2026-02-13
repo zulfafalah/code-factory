@@ -248,3 +248,27 @@ class StoryNarrationListAPIView(generics.ListAPIView):
         
         return queryset
 
+
+class StoryNarrationTrendingAPIView(generics.ListAPIView):
+    """
+    API View to get trending StoryNarrations.
+    Returns top 5 stories ordered by play_count (highest first).
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = StoryNarrationListSerializer
+
+    @extend_schema(
+        summary="Trending Story Narrations",
+        description="Get top 5 trending Story Narrations ordered by play_count descending.",
+        tags=["Ceritain"],
+        responses={
+            200: StoryNarrationListSerializer(many=True),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return StoryNarration.objects.filter(status="done").order_by("-play_count")[:5]
+
