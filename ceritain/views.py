@@ -27,13 +27,17 @@ logger = logging.getLogger(__name__)
 class StoryNarrationCreateAPIView(APIView):
     """
     API View to create StoryNarration
+    
+    Accepts optional X-Client-Fingerprint header to track who created the narration.
+    The header is processed by ClientFingerprintMiddleware.
     """
 
     permission_classes = [AllowAny]
 
     @extend_schema(
         summary="Create Story Narration",
-        description="Create a new Story Narration with content text and optional source URL",
+        description="Create a new Story Narration with content text and optional source URL. "
+                    "Optionally include X-Client-Fingerprint header to track the creator.",
         tags=["Ceritain"],
         request=StoryNarrationCreateSerializer,
         responses={
@@ -54,13 +58,16 @@ class StoryNarrationCreateAPIView(APIView):
         content_text = serializer.validated_data["content_text"]
         source_url = serializer.validated_data.get("source_url")
 
+        # Get client fingerprint from middleware (attached to request)
+        client_fingerprint = getattr(request, 'client_fingerprint', None)
+
         try:
             # Create StoryNarration instance
             story_narration = StoryNarration.objects.create(
                 content_text=content_text,
                 source_url=source_url,
                 status="processing",
-                created_by=request.user if request.user.is_authenticated else None,
+                created_by=client_fingerprint,
             )
 
             # Start the background processing task
@@ -88,6 +95,8 @@ class StoryNarrationCreateAPIView(APIView):
 class StoryNarrationStatusAPIView(APIView):
     """
     API View to check the status/progress of StoryNarration
+    
+    Accepts optional X-Client-Fingerprint header (processed by middleware).
     """
 
     permission_classes = [AllowAny]
@@ -134,6 +143,8 @@ class StoryNarrationStatusAPIView(APIView):
 class StoryNarrationStreamingAPIView(APIView):
     """
     API View to stream audio file from StoryNarration
+    
+    Accepts optional X-Client-Fingerprint header (processed by middleware).
     """
 
     permission_classes = [AllowAny]
@@ -202,6 +213,8 @@ class StoryNarrationStreamingAPIView(APIView):
 class StoryNarrationListAPIView(generics.ListAPIView):
     """
     API View to list StoryNarration with filter and ordering support.
+    
+    Accepts optional X-Client-Fingerprint header (processed by middleware).
     
     Supports:
     - Search: ?search=<keyword> - searches in title, content_text, source_url, created_by email
