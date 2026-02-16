@@ -31,6 +31,8 @@ services:
       context: .
       dockerfile: ./compose/production/postgres/Dockerfile
     image: palpal_production_postgres
+    ports:
+      - '5435:5432'
     container_name: palpal_local_postgres
     volumes:
       - palpal_local_postgres_data:/var/lib/postgresql/data

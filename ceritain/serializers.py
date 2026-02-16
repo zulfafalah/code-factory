@@ -130,7 +130,8 @@ class StoryNarrationListSerializer(serializers.ModelSerializer):
             "created_by",
             "play_count",
             "estimated_read_time",
-            "estimated_read_time_formatted"
+            "estimated_read_time_formatted",
+            "background_cover"
         ]
         read_only_fields = fields
     
