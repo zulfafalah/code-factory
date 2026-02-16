@@ -113,6 +113,8 @@ class StoryNarrationListSerializer(serializers.ModelSerializer):
     """Serializer for listing StoryNarration with optimized fields"""
     
     content_text_preview = serializers.SerializerMethodField()
+    estimated_read_time_formatted = serializers.SerializerMethodField()
+    
     class Meta:
         model = StoryNarration
         fields = [
@@ -127,6 +129,8 @@ class StoryNarrationListSerializer(serializers.ModelSerializer):
             "result_file",
             "created_by",
             "play_count",
+            "estimated_read_time",
+            "estimated_read_time_formatted"
         ]
         read_only_fields = fields
     
@@ -135,5 +139,18 @@ class StoryNarrationListSerializer(serializers.ModelSerializer):
         if obj.content_text and len(obj.content_text) > 200:
             return obj.content_text[:200] + "..."
         return obj.content_text
+    
+    def get_estimated_read_time_formatted(self, obj):
+        """Format estimated_read_time as 'X Min' or 'X Sec'"""
+        if obj.estimated_read_time == 0:
+            return "0 Sec"
+        
+        # Convert seconds to minutes
+        minutes = obj.estimated_read_time // 60
+        
+        if minutes > 0:
+            return f"{minutes} Min"
+        else:
+            return f"{obj.estimated_read_time} Sec"
     
 
