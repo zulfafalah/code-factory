@@ -7,7 +7,7 @@ from .models import StoryNarration
 class StoryNarrationCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating new StoryNarration"""
     
-    content_text = serializers.CharField(required=True, help_text="Content text for narration (required)")
+    content_text = serializers.CharField(required=False, allow_blank=True, help_text="Content text for narration (required if source_url is not provided)")
     source_url = serializers.URLField(required=False, allow_blank=True, allow_null=True, help_text="Source URL (optional)")
     
     class Meta:
@@ -15,9 +15,17 @@ class StoryNarrationCreateSerializer(serializers.ModelSerializer):
         fields = ["content_text", "source_url"]
     
     def validate_content_text(self, value):
-        """Validate that content_text is not empty"""
+        """Validate that content_text is not empty unless source_url is provided"""
+        source_url = self.initial_data.get('source_url')
+        
+        # If source_url is provided, content_text can be empty
+        if source_url:
+            return value.strip() if value else ""
+        
+        # If source_url is not provided, content_text must not be empty
         if not value or not value.strip():
-            raise serializers.ValidationError("Content text cannot be empty")
+            raise serializers.ValidationError("Content text cannot be empty when source_url is not provided")
+        
         return value.strip()
     
     def validate_source_url(self, value):
