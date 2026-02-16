@@ -67,6 +67,7 @@ class StoryNarrationCreateSerializer(serializers.ModelSerializer):
 class StoryNarrationSerializer(serializers.ModelSerializer):
     """Serializer for StoryNarration model"""
     
+    estimated_read_time_formatted = serializers.SerializerMethodField()
     class Meta:
         model = StoryNarration
         fields = [
@@ -83,6 +84,10 @@ class StoryNarrationSerializer(serializers.ModelSerializer):
             "total_token",
             "result_file",
             "message_response",
+            "estimated_read_time",
+            "estimated_read_time_formatted",
+            "play_count",
+            "background_cover",
         ]
         read_only_fields = [
             "id",
@@ -97,6 +102,22 @@ class StoryNarrationSerializer(serializers.ModelSerializer):
             "result_file",
             "message_response",
         ]
+    
+    def get_estimated_read_time_formatted(self, obj):
+        """Format estimated_read_time as 'X Min' or 'X Sec'"""
+        if obj.estimated_read_time == 0:
+            return "0 Sec"
+        
+        # Convert seconds to minutes
+        minutes = obj.estimated_read_time // 60
+        
+        if minutes > 0:
+            return f"{minutes} Min"
+        else:
+            return f"{obj.estimated_read_time} Sec"
+    
+
+
 
 
 class StoryNarrationCreateResponseSerializer(serializers.Serializer):

@@ -114,24 +114,8 @@ class StoryNarrationStatusAPIView(APIView):
         """Get the status of a StoryNarration"""
         try:
             story_narration = StoryNarration.objects.get(id=story_narration_id)
-            
-            response_data = {
-                "id": story_narration.id,
-                "status": story_narration.status,
-                "title": story_narration.title,
-                "content_text": story_narration.content_text[:200] + "..." if len(story_narration.content_text) > 200 else story_narration.content_text,
-                "source_url": story_narration.source_url,
-                "final_content": story_narration.final_content,
-                "created_at": story_narration.created_at,
-                "updated_at": story_narration.updated_at,
-                "input_token": story_narration.input_token,
-                "output_token": story_narration.output_token,
-                "total_token": story_narration.total_token,
-                "result_file": request.build_absolute_uri(story_narration.result_file.url) if story_narration.result_file else None,
-                "message_response": story_narration.message_response,
-            }
-            
-            return Response(response_data, status=status.HTTP_200_OK)
+            serializer = StoryNarrationSerializer(story_narration, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         except StoryNarration.DoesNotExist:
             return Response(
