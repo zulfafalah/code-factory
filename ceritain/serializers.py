@@ -75,7 +75,9 @@ class StoryNarrationCreateSerializer(serializers.ModelSerializer):
 class StoryNarrationSerializer(serializers.ModelSerializer):
     """Serializer for StoryNarration model"""
     
+    source_url = serializers.SerializerMethodField()
     estimated_read_time_formatted = serializers.SerializerMethodField()
+    
     class Meta:
         model = StoryNarration
         fields = [
@@ -110,6 +112,18 @@ class StoryNarrationSerializer(serializers.ModelSerializer):
             "result_file",
             "message_response",
         ]
+    
+    def get_source_url(self, obj):
+        """Remove freedium-mirror.cfd prefix from source_url"""
+        if not obj.source_url:
+            return obj.source_url
+        
+        # Remove the freedium mirror prefix if present
+        freedium_prefix = "https://freedium-mirror.cfd/"
+        if obj.source_url.startswith(freedium_prefix):
+            return obj.source_url[len(freedium_prefix):]
+        
+        return obj.source_url
     
     def get_estimated_read_time_formatted(self, obj):
         """Format estimated_read_time as 'X Min' or 'X Sec'"""
