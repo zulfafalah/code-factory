@@ -227,7 +227,7 @@ class StoryNarrationListAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = StoryNarrationListSerializer
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ["title", "content_text", "source_url", "created_by__email"]
+    search_fields = ["title", "content_text", "source_url"]
     ordering_fields = ["created_at", "updated_at", "status", "title", "total_token", "created_by"]
     ordering = ["-created_at"]  # Default ordering
 
@@ -252,7 +252,7 @@ class StoryNarrationListAPIView(generics.ListAPIView):
         # Filter by created_by if provided
         created_by_filter = self.request.query_params.get("created_by")
         if created_by_filter:
-            queryset = queryset.filter(created_by_id=created_by_filter)
+            queryset = queryset.filter(created_by=created_by_filter)
         
         # Filter by status if provided
         status_filter = self.request.query_params.get("status")
