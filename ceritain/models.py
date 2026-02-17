@@ -56,6 +56,11 @@ class StoryNarration(models.Model):
                     "Daily token quota exceeded. Please try again tomorrow."
                 )
 
+            if narration_settings.is_maintenance:
+                raise ValidationError(
+                    "The server is taking a coffee break. New narration creation will be back soon!"
+                )
+
     def save(self, *args, **kwargs):
         """Override save to ensure clean() validation runs and assign default background."""
         # Only run full_clean on creation to avoid issues with updates
