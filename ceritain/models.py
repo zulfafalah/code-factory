@@ -1,4 +1,5 @@
 import random
+import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -18,6 +19,7 @@ BACKGROUND_COVER_IMAGES = [
 
 # Create your models here.
 class StoryNarration(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     STATUS_CHOICES = (
         ('draft', 'Draft'),
         ('processing', 'Processing'),
@@ -48,8 +50,8 @@ class StoryNarration(models.Model):
     def clean(self):
         """Validate token quota before saving new StoryNarration."""
         super().clean()
-        # Only validate on creation (when pk is None)
-        if self.pk is None:
+        # Only validate on creation
+        if self._state.adding:
             narration_settings = StoryNarrationSettings.get_solo()
             if narration_settings.total_token_used >= narration_settings.daily_token_quota:
                 raise ValidationError(
@@ -64,7 +66,7 @@ class StoryNarration(models.Model):
     def save(self, *args, **kwargs):
         """Override save to ensure clean() validation runs and assign default background."""
         # Only run full_clean on creation to avoid issues with updates
-        if self.pk is None:
+        if self._state.adding:
             self.full_clean()
         
         # Assign random background cover if not set
