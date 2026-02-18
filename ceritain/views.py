@@ -71,14 +71,14 @@ class StoryNarrationCreateAPIView(APIView):
             )
 
             # Start the background processing task
-            task = process_story_narration_task.delay(story_narration.id)
+            task = process_story_narration_task.delay(str(story_narration.pk))
 
             return Response(
                 {
                     "success": True,
                     "message": "Story narration created and processing started",
                     "task_id": task.id,
-                    "story_narration_id": story_narration.id,
+                    "story_narration_id": str(story_narration.pk),
                     "status": story_narration.status,
                 },
                 status=status.HTTP_201_CREATED,
@@ -113,7 +113,7 @@ class StoryNarrationStatusAPIView(APIView):
     def get(self, request, story_narration_id):
         """Get the status of a StoryNarration"""
         try:
-            story_narration = StoryNarration.objects.get(id=story_narration_id)
+            story_narration = StoryNarration.objects.get(pk=story_narration_id)
             serializer = StoryNarrationSerializer(story_narration, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -145,7 +145,7 @@ class StoryNarrationStreamingAPIView(APIView):
     def get(self, request, story_narration_id):
         """Stream the audio file from a StoryNarration"""
         try:
-            story_narration = StoryNarration.objects.get(id=story_narration_id)
+            story_narration = StoryNarration.objects.get(pk=story_narration_id)
 
             # Check if result_file exists
             if not story_narration.result_file:
@@ -173,7 +173,7 @@ class StoryNarrationStreamingAPIView(APIView):
             file_name = os.path.basename(file_path)
 
             # Increment play count atomically
-            StoryNarration.objects.filter(id=story_narration_id).update(
+            StoryNarration.objects.filter(pk=story_narration_id).update(
                 play_count=F('play_count') + 1
             )
 

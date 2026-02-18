@@ -17,5 +17,5 @@ def story_narration_post_save(sender, instance, created, **kwargs):
     if created:
         from .tasks import process_story_narration_task
         # Use on_commit to queue task after transaction completes
-        transaction.on_commit(lambda: process_story_narration_task.delay(instance.id))
+        transaction.on_commit(lambda: process_story_narration_task.delay(str(instance.pk)))
 

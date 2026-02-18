@@ -148,7 +148,7 @@ class StoryNarrationCreateResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
     task_id = serializers.CharField(required=False)
-    story_narration_id = serializers.IntegerField(required=False)
+    story_narration_id = serializers.CharField(required=False)
     status = serializers.CharField(required=False)
 
 
