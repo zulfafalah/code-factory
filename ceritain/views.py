@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import StoryNarration
+from .models import StoryNarration, StoryNarrationSettings
 from .serializers import (
     StoryNarrationCreateResponseSerializer,
     StoryNarrationCreateSerializer,
@@ -48,6 +48,21 @@ class StoryNarrationCreateAPIView(APIView):
     )
     def post(self, request):
         """Create a new StoryNarration"""
+        # Check daily quota before doing anything
+        narration_settings = StoryNarrationSettings.get_solo()
+        if narration_settings.total_token_used >= narration_settings.daily_token_quota:
+            return Response(
+                {
+                    "error": (
+                        "Whoa there, wordsmith! 🛑 Our AI storytellers are currently "
+                        "exhausted from all the amazing tales today. They're taking a "
+                        "well-deserved nap 😴 and will be back fresh and ready to narrate "
+                        "more stories tomorrow! Please check back then!"
+                    )
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         serializer = StoryNarrationCreateSerializer(data=request.data)
 
         if not serializer.is_valid():
