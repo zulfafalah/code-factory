@@ -96,14 +96,14 @@ def process_story_narration(story_narration):
     try:
         settings = StoryNarrationSettings.get_solo()
         if settings.is_maintenance:
-            logger.info(f"Maintenance mode active. Skipping StoryNarration {story_narration.id}")
+            logger.info(f"Maintenance mode active. Skipping StoryNarration {story_narration.pk}")
             story_narration.message_response = "System is currently under maintenance. Please try again later."
             story_narration.status = 'failed'
             story_narration.save(update_fields=['message_response', 'status'])
             return
 
         if settings.total_token_used >= settings.daily_token_quota:
-            logger.info(f"Daily token quota exceeded. Skipping StoryNarration {story_narration.id}")
+            logger.info(f"Daily token quota exceeded. Skipping StoryNarration {story_narration.pk}")
             story_narration.message_response = "Daily token quota exceeded. Please try again tomorrow."
             story_narration.status = 'failed'
             story_narration.save(update_fields=['message_response', 'status'])
@@ -206,7 +206,7 @@ def process_from_url(story_narration):
         source_url = story_narration.source_url
         
         if not source_url:
-            logger.warning(f"StoryNarration {story_narration.id} has no source_url")
+            logger.warning(f"StoryNarration {story_narration.pk} has no source_url")
             story_narration.status = 'failed'
             story_narration.message_response = "No source URL provided"
             story_narration.save(update_fields=['status', 'message_response'])
@@ -266,11 +266,11 @@ Pauses: Brief pauses after important points, highlighting key information."""
         raw_audio_content = response.content
         
         # Mix voice with background music
-        logger.info(f"Mixing voice with BGM for StoryNarration {story_narration.id}")
+        logger.info(f"Mixing voice with BGM for StoryNarration {story_narration.pk}")
         audio_content = mix_voice_with_bgm(raw_audio_content)
         
         # Generate unique filename
-        filename = f"narration_{story_narration.id}_{uuid.uuid4().hex[:8]}.mp3"
+        filename = f"narration_{story_narration.pk}_{uuid.uuid4().hex[:8]}.mp3"
         
         # Save audio file to result_file field
         story_narration.result_file.save(
@@ -316,26 +316,26 @@ Pauses: Brief pauses after important points, highlighting key information."""
         narration_settings.total_token_used += story_narration.total_token
         narration_settings.save(update_fields=['total_token_used'])
         
-        logger.info(f"StoryNarration {story_narration.id} processed successfully from URL")
+        logger.info(f"StoryNarration {story_narration.pk} processed successfully from URL")
         
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching URL for StoryNarration {story_narration.id}: {str(e)}")
+        logger.error(f"Error fetching URL for StoryNarration {story_narration.pk}: {str(e)}")
         from .models import StoryNarration
-        StoryNarration.objects.filter(id=story_narration.id).update(
+        StoryNarration.objects.filter(pk=story_narration.pk).update(
             status='failed',
             message_response=f"Error fetching URL: {str(e)}"
         )
     except ValueError as e:
-        logger.error(f"Error extracting content for StoryNarration {story_narration.id}: {str(e)}")
+        logger.error(f"Error extracting content for StoryNarration {story_narration.pk}: {str(e)}")
         from .models import StoryNarration
-        StoryNarration.objects.filter(id=story_narration.id).update(
+        StoryNarration.objects.filter(pk=story_narration.pk).update(
             status='failed',
             message_response=f"Error extracting content: {str(e)}"
         )
     except Exception as e:
-        logger.error(f"Error processing StoryNarration from URL {story_narration.id}: {str(e)}")
+        logger.error(f"Error processing StoryNarration from URL {story_narration.pk}: {str(e)}")
         from .models import StoryNarration
-        StoryNarration.objects.filter(id=story_narration.id).update(
+        StoryNarration.objects.filter(pk=story_narration.pk).update(
             status='failed',
             message_response=f"Error: {str(e)}"
         )
@@ -472,7 +472,7 @@ def process_from_content(story_narration):
         content_text = story_narration.content_text
         
         if not content_text:
-            logger.warning(f"StoryNarration {story_narration.id} has no content_text")
+            logger.warning(f"StoryNarration {story_narration.pk} has no content_text")
             story_narration.status = 'failed'
             story_narration.save(update_fields=['status'])
             return
@@ -489,7 +489,7 @@ def process_from_content(story_narration):
         title_tokens = {"input_token": 0, "output_token": 0, "total_token": 0}
         if not story_narration.title:
             try:
-                logger.info(f"Generating title for StoryNarration {story_narration.id}")
+                logger.info(f"Generating title for StoryNarration {story_narration.pk}")
                 title_result = generate_title(content_text)
                 print("title_result", title_result)
                 story_narration.title = title_result["title"]
@@ -535,11 +535,11 @@ Pauses: Brief pauses after important points, highlighting key information."""
         raw_audio_content = response.content
         
         # Mix voice with background music
-        logger.info(f"Mixing voice with BGM for StoryNarration {story_narration.id}")
+        logger.info(f"Mixing voice with BGM for StoryNarration {story_narration.pk}")
         audio_content = mix_voice_with_bgm(raw_audio_content)
         
         # Generate unique filename
-        filename = f"narration_{story_narration.id}_{uuid.uuid4().hex[:8]}.mp3"
+        filename = f"narration_{story_narration.pk}_{uuid.uuid4().hex[:8]}.mp3"
         
         # Save audio file to result_file field
         story_narration.result_file.save(
@@ -586,14 +586,14 @@ Pauses: Brief pauses after important points, highlighting key information."""
         narration_settings.total_token_used += story_narration.total_token
         narration_settings.save(update_fields=['total_token_used'])
         
-        logger.info(f"StoryNarration {story_narration.id} processed successfully")
+        logger.info(f"StoryNarration {story_narration.pk} processed successfully")
         
     except Exception as e:
-        logger.error(f"Error processing StoryNarration {story_narration.id}: {str(e)}")
+        logger.error(f"Error processing StoryNarration {story_narration.pk}: {str(e)}")
         # Use update() to avoid transaction issues - this creates a new query
         # Use update() to avoid transaction issues - this creates a new query
         from .models import StoryNarration, StoryNarrationSettings
-        StoryNarration.objects.filter(id=story_narration.id).update(
+        StoryNarration.objects.filter(pk=story_narration.pk).update(
             status='failed',
             final_content=f"Error: {str(e)}"
         )

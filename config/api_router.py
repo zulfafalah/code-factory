@@ -45,12 +45,12 @@ urlpatterns = [
         name="v1_create_story_narration",
     ),
     path(
-        "v1/ceritain/story-narration/<int:story_narration_id>/status",
+        "v1/ceritain/story-narration/<uuid:story_narration_id>/status",
         StoryNarrationStatusAPIView.as_view(),
         name="v1_story_narration_status",
     ),
     path(
-        "v1/ceritain/story-narration/<int:story_narration_id>/streaming",
+        "v1/ceritain/story-narration/<uuid:story_narration_id>/streaming",
         StoryNarrationStreamingAPIView.as_view(),
         name="v1_story_narration_streaming",
     ),

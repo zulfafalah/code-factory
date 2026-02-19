@@ -14,7 +14,7 @@ def process_story_narration_task(self, story_narration_id):
     Background task to process story narration.
     
     Args:
-        story_narration_id (int): ID of the StoryNarration instance
+        story_narration_id (str): UUID of the StoryNarration instance
         
     Returns:
         dict: Result of the operation
@@ -22,7 +22,7 @@ def process_story_narration_task(self, story_narration_id):
     StoryNarration = apps.get_model('ceritain', 'StoryNarration')
     
     try:
-        story_narration = StoryNarration.objects.get(id=story_narration_id)
+        story_narration = StoryNarration.objects.get(pk=story_narration_id)
         
         logger.info(f"Starting background processing for StoryNarration ID: {story_narration_id}")
         
@@ -51,7 +51,7 @@ def process_story_narration_task(self, story_narration_id):
         
         # Update status to failed before retry
         try:
-            story_narration = StoryNarration.objects.get(id=story_narration_id)
+            story_narration = StoryNarration.objects.get(pk=story_narration_id)
             story_narration.status = 'failed'
             story_narration.message_response = f"Processing failed: {str(e)}"
             story_narration.save(update_fields=['status', 'message_response'])
