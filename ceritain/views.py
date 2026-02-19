@@ -267,5 +267,5 @@ class StoryNarrationTrendingAPIView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        return StoryNarration.objects.filter(status="done").order_by("-play_count")[:5]
+        return StoryNarration.objects.filter(status="done").order_by("-play_count")[:10]
 
