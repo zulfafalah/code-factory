@@ -54,10 +54,7 @@ class StoryNarrationCreateAPIView(APIView):
             return Response(
                 {
                     "error": (
-                        "Whoa there, wordsmith! 🛑 Our AI storytellers are currently "
-                        "exhausted from all the amazing tales today. They're taking a "
-                        "well-deserved nap 😴 and will be back fresh and ready to narrate "
-                        "more stories tomorrow! Please check back then!"
+                        "Whoa there, wordsmith! 🛑 Our AI storytellers are taking a quick nap 😴 and will be back tomorrow, refreshed and ready to spin new tales!"
                     )
                 },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
