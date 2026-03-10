@@ -95,7 +95,8 @@ LOCAL_APPS = [
     "sales",
     "yttoolkit",
     "kokorean",
-    "ceritain"
+    "ceritain",
+    "moderation",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -468,6 +469,18 @@ UNFOLD = {
                         "title": _("Settings"),
                         "icon": "settings",
                         "link": reverse_lazy("admin:ceritain_storynarrationsettings_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Moderation"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Social Comments"),
+                        "icon": "forum",
+                        "link": reverse_lazy("admin:moderation_socialcomment_changelist"),
                     },
                 ],
             },
