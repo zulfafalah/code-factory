@@ -11,7 +11,8 @@ class SocialComment(models.Model):
         ('facebook', 'Facebook'),
         ('twitter', 'Twitter'),
         ('other', 'Other'),
-    ])
+    ], default='tiktok')
+    video_url = models.CharField(max_length=255, blank=True, null=True)
     nickname = models.CharField(max_length=255, blank=True, null=True)
     username = models.CharField(max_length=255, blank=True, null=True)
     external_uid = models.CharField(max_length=255, blank=True, null=True)
@@ -26,3 +27,6 @@ class SocialComment(models.Model):
     created_by = models.CharField(max_length=255, blank=True, null=True)
     updated_by = models.CharField(max_length=255, blank=True, null=True)
     
+    def __str__(self):
+        return f"{self.username} - {self.platform} - {self.comment}"
+        
