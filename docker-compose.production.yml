@@ -112,3 +112,8 @@ services:
     command: /start-flower
     ports:
       - '127.0.0.1:5556:5555'
+
+networks:
+  default:
+    external: true
+    name: npm-network
