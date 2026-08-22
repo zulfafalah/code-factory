@@ -34,3 +34,12 @@ CORS_ALLOW_CREDENTIALS=True
 # OpenAI
 # ------------------------------------------------------------------------------
 OPENAI_API_KEY=xxxxxxx
+
+# Kontenin (TikHub + openwa)
+# ------------------------------------------------------------------------------
+TIKHUB_BASE_URL=https://api.tikhub.io
+TIKHUB_API_KEY=
+OPENWA_BASE_URL=https://your-openwa-host
+OPENWA_API_KEY=
+OPENWA_BASIC_AUTH_USER=
+OPENWA_BASIC_AUTH_PASSWORD=
