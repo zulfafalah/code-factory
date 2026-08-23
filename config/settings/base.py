@@ -97,6 +97,7 @@ LOCAL_APPS = [
     "kokorean",
     "ceritain",
     "moderation",
+    "kontenin",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -371,6 +372,23 @@ EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 # ------------------------------------------------------------------------------
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 
+# Kontenin (TikHub + openwa content pipeline)
+# ------------------------------------------------------------------------------
+TIKHUB_BASE_URL = env("TIKHUB_BASE_URL", default="https://api.tikhub.io")
+TIKHUB_API_KEY = env("TIKHUB_API_KEY", default="")
+# Netscape-format cookies.txt used by yt-dlp to get past TikTok's anti-bot.
+# The file lives under cookies/ and is gitignored (cookies/*cookies*).
+TIKTOK_COOKIE_FILE = env(
+    "TIKTOK_COOKIE_FILE",
+    default=str(BASE_DIR / "cookies" / "tiktok_cookies.txt"),
+)
+# OpenWA gateway (self-hosted OpenWA API server, 0.23.x)
+OPENWA_BASE_URL = env("OPENWA_BASE_URL", default="")
+OPENWA_API_KEY = env("OPENWA_API_KEY", default="")
+# Only needed when the gateway sits behind an HTTP-basic-protected proxy
+OPENWA_BASIC_AUTH_USER = env("OPENWA_BASIC_AUTH_USER", default="")
+OPENWA_BASIC_AUTH_PASSWORD = env("OPENWA_BASIC_AUTH_PASSWORD", default="")
+
 # Story Narration BGM (Background Music)
 # ------------------------------------------------------------------------------
 # Path to background music file for story narration audio mixing
@@ -544,6 +562,33 @@ UNFOLD = {
                         "title": _("Manhwa"),
                         "icon": "book",
                         "link": reverse_lazy("admin:kokorean_manhwa_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Kontenin"),
+                "separator": True,
+                "collapsible": False,
+                "items": [
+                    {
+                        "title": _("Content Candidates"),
+                        "icon": "rate_review",
+                        "link": reverse_lazy("admin:kontenin_contentcandidate_changelist"),
+                    },
+                    {
+                        "title": _("Topics"),
+                        "icon": "label",
+                        "link": reverse_lazy("admin:kontenin_topic_changelist"),
+                    },
+                    {
+                        "title": _("Deliveries"),
+                        "icon": "send",
+                        "link": reverse_lazy("admin:kontenin_delivery_changelist"),
+                    },
+                    {
+                        "title": _("Kontenin Settings"),
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:kontenin_konteninsettings_changelist"),
                     },
                 ],
             },
