@@ -20,6 +20,12 @@ services:
     env_file:
       - ./.envs/.local/.django
       - ./.envs/.local/.postgres
+    # Docker Desktop's embedded DNS forwarder is flaky for some domains
+    # (tiktok.com, api.tikhub.io intermittently fail to resolve with
+    # "[Errno -5] No address associated with hostname"). Pin public resolvers.
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     ports:
       - '8011:8000'
       - '587:587'

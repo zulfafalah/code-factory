@@ -110,7 +110,11 @@ class ContentCandidateAdmin(ModelAdmin):
     @admin.action(description=_("Approve - masukkan ke antrian download"))
     def approve_selected(self, request, queryset):
         approvable = queryset.filter(
-            status__in=[ContentCandidate.STATUS_PENDING, ContentCandidate.STATUS_DOWNLOAD_FAILED],
+            status__in=[
+                ContentCandidate.STATUS_PENDING,
+                ContentCandidate.STATUS_DOWNLOAD_FAILED,
+                ContentCandidate.STATUS_DOWNLOADING,
+            ],
         )
         candidate_ids = [str(pk) for pk in approvable.values_list("id", flat=True)]
 

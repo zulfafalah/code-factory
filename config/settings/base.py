@@ -376,6 +376,12 @@ OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 # ------------------------------------------------------------------------------
 TIKHUB_BASE_URL = env("TIKHUB_BASE_URL", default="https://api.tikhub.io")
 TIKHUB_API_KEY = env("TIKHUB_API_KEY", default="")
+# Netscape-format cookies.txt used by yt-dlp to get past TikTok's anti-bot.
+# The file lives under cookies/ and is gitignored (cookies/*cookies*).
+TIKTOK_COOKIE_FILE = env(
+    "TIKTOK_COOKIE_FILE",
+    default=str(BASE_DIR / "cookies" / "tiktok_cookies.txt"),
+)
 # OpenWA gateway (self-hosted OpenWA API server, 0.23.x)
 OPENWA_BASE_URL = env("OPENWA_BASE_URL", default="")
 OPENWA_API_KEY = env("OPENWA_API_KEY", default="")

@@ -71,7 +71,7 @@ def scrape_all_topics(self):
         # Low Stock Alert do the talking.
         try:
             self.retry(exc=TikHubError('; '.join(failures)))
-        except self.MaxRetriesExceededError:
+        except (TikHubError, self.MaxRetriesExceededError):
             logger.error('Scrape gave up after retries: %s', failures)
 
     return {'results': results, 'failures': failures}
@@ -112,7 +112,9 @@ def download_candidate(self, candidate_id):
         logger.error('Download failed for candidate %s: %s', candidate_id, exc)
         try:
             self.retry(exc=exc)
-        except self.MaxRetriesExceededError:
+        except (DownloadError, self.MaxRetriesExceededError):
+            # self.retry(exc=...) re-raises the original error once retries are
+            # exhausted, so this is reached via DownloadError, not MaxRetriesExceededError.
             candidate.status = ContentCandidate.STATUS_DOWNLOAD_FAILED
             candidate.error_message = str(exc)
             candidate.save(update_fields=['status', 'error_message', 'updated_at'])
@@ -222,7 +224,7 @@ def deliver_candidate(self, candidate_id):
 
         try:
             self.retry(exc=exc)
-        except self.MaxRetriesExceededError:
+        except (OpenWaError, self.MaxRetriesExceededError):
             delivery.status = Delivery.STATUS_FAILED
             delivery.save(update_fields=['status', 'updated_at'])
             send_channel_failure_email(

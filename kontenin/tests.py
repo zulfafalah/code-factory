@@ -1,6 +1,13 @@
+from types import SimpleNamespace
+
 import pytest
 
-from kontenin.services import _extract_aweme_list, parse_aweme
+from kontenin.services import (
+    _extract_aweme_list,
+    _extract_play_url,
+    fetch_video_download_url,
+    parse_aweme,
+)
 
 AWEME_FIXTURE = {
     "aweme_id": "7300000000000000000",
@@ -64,6 +71,90 @@ class TestExtractAwemeList:
     @pytest.mark.parametrize("payload", [{}, {"data": {}}, None, "nope"])
     def test_returns_empty_when_there_is_no_list(self, payload):
         assert _extract_aweme_list(payload) == []
+
+
+class TestExtractPlayUrl:
+    """TikHub nests the video data differently across versions - ADR 0002."""
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"data": {"aweme_detail": {"video": {"play_addr": {"url_list": ["https://cdn.example/v.mp4"]}}}}},
+            {"data": {"video": {"download_addr": {"url_list": ["https://cdn.example/v.mp4"]}}}},
+            {"data": {"aweme": {"video": {"play_addr_h264": {"url_list": ["https://cdn.example/v.mp4"]}}}}},
+            {"video": {"play_addr": {"url_list": ["https://cdn.example/v.mp4"]}}},
+        ],
+    )
+    def test_finds_the_play_url_across_nested_shapes(self, payload):
+        assert _extract_play_url(payload) == "https://cdn.example/v.mp4"
+
+    def test_returns_none_when_there_is_no_play_addr(self):
+        assert _extract_play_url({"data": {"video": {"cover": {"url_list": ["https://cdn.example/c.jpg"]}}}}) is None
+
+
+class _FakeResponse:
+    def __init__(self, status_code=200, json_data=None, text=""):
+        self.status_code = status_code
+        self._json = json_data
+        self.text = text
+
+    def json(self):
+        if self._json is None:
+            raise ValueError("no json")
+        return self._json
+
+
+class TestFetchVideoDownloadUrl:
+    def test_requests_the_play_url_by_aweme_id(self, monkeypatch):
+        from kontenin import services
+
+        monkeypatch.setattr(services.settings, "TIKHUB_API_KEY", "k")
+        monkeypatch.setattr(services.settings, "TIKHUB_BASE_URL", "https://api.tikhub.io")
+
+        captured = {}
+
+        def fake_get(url, params, headers, timeout):
+            captured["url"] = url
+            captured["params"] = params
+            return _FakeResponse(
+                200,
+                {"code": 200, "data": {"video": {"play_addr": {"url_list": ["https://cdn.example/v.mp4"]}}}},
+            )
+
+        monkeypatch.setattr(services.requests, "get", fake_get)
+
+        candidate = SimpleNamespace(external_video_id="7350810998023949599", topic=SimpleNamespace(region="ID"))
+
+        assert fetch_video_download_url(candidate) == "https://cdn.example/v.mp4"
+        assert captured["params"]["aweme_id"] == "7350810998023949599"
+
+    def test_returns_none_on_api_error_code(self, monkeypatch):
+        from kontenin import services
+
+        monkeypatch.setattr(services.settings, "TIKHUB_API_KEY", "k")
+
+        monkeypatch.setattr(
+            services.requests, "get",
+            lambda *a, **k: _FakeResponse(200, {"code": 400, "message": "video not found"}),
+        )
+
+        candidate = SimpleNamespace(external_video_id="000", topic=SimpleNamespace(region="ID"))
+
+        assert fetch_video_download_url(candidate) is None
+
+    def test_returns_none_on_detail_error_envelope(self, monkeypatch):
+        from kontenin import services
+
+        monkeypatch.setattr(services.settings, "TIKHUB_API_KEY", "k")
+
+        monkeypatch.setattr(
+            services.requests, "get",
+            lambda *a, **k: _FakeResponse(200, {"detail": {"code": 402, "message": "Insufficient balance"}}),
+        )
+
+        candidate = SimpleNamespace(external_video_id="000", topic=SimpleNamespace(region="ID"))
+
+        assert fetch_video_download_url(candidate) is None
 
 
 @pytest.mark.django_db

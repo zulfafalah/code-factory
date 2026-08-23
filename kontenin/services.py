@@ -16,6 +16,7 @@ video is handed over as a URL rather than base64, and for the SSRF guard that
 choice runs into.
 """
 
+import io
 import logging
 import os
 import tempfile
@@ -45,6 +46,9 @@ class OpenWaError(Exception):
 # ---------------------------------------------------------------------------
 
 TIKHUB_SEARCH_PATH = '/api/v1/tiktok/app/v3/fetch_video_search_result'
+# v2 accepts free credit; v3 does not (it returns 402 "does not accept free
+# credit"), so v2 is the endpoint a Curator with only daily free credit can use.
+TIKHUB_FETCH_VIDEO_PATH = '/api/v1/tiktok/app/v3/fetch_one_video_v2'
 
 
 def _tikhub_headers():
@@ -80,6 +84,40 @@ def _extract_aweme_list(payload):
 def _first_url(url_list):
     if isinstance(url_list, list) and url_list:
         return url_list[0]
+    return None
+
+
+VIDEO_ADDR_KEYS = ('play_addr', 'download_addr', 'play_addr_h264', 'download_addr_h264')
+
+
+def _iter_dicts(value):
+    if isinstance(value, dict):
+        yield value
+        for child in value.values():
+            yield from _iter_dicts(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _iter_dicts(child)
+
+
+def _extract_play_url(payload):
+    """
+    Find the first play/download URL in a TikHub video response.
+
+    TikHub nests the video data differently across endpoint versions, so walk
+    the whole payload looking for play_addr / download_addr nodes rather than
+    assuming one shape.
+    """
+    for node in _iter_dicts(payload):
+        for key in VIDEO_ADDR_KEYS:
+            addr = node.get(key)
+            if not isinstance(addr, dict):
+                continue
+            url_list = addr.get('url_list')
+            if isinstance(url_list, list):
+                for url in url_list:
+                    if isinstance(url, str) and url.startswith('http'):
+                        return url
     return None
 
 
@@ -161,6 +199,55 @@ def search_videos(topic, offset=0, count=None):
     return _extract_aweme_list(payload)
 
 
+def fetch_video_download_url(candidate):
+    """
+    Ask TikHub for a fresh, directly-downloadable play URL for one video.
+
+    The URL is fetched at download time, not stored for days, so it cannot have
+    expired the way a CDN URL cached at scrape time would - see ADR 0002.
+    Returns None when TikHub has no URL for the video rather than raising, so
+    the caller can fall back to yt-dlp.
+    """
+    if not settings.TIKHUB_API_KEY:
+        raise TikHubError('TIKHUB_API_KEY is not configured')
+
+    params = {'aweme_id': candidate.external_video_id}
+    url = f'{settings.TIKHUB_BASE_URL.rstrip("/")}{TIKHUB_FETCH_VIDEO_PATH}'
+
+    try:
+        response = requests.get(
+            url, params=params, headers=_tikhub_headers(), timeout=30,
+        )
+    except requests.RequestException as exc:
+        raise TikHubError(f'TikHub request failed: {exc}') from exc
+
+    if response.status_code != 200:
+        raise TikHubError(
+            f'TikHub returned {response.status_code}: {response.text[:300]}'
+        )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise TikHubError('TikHub returned a non-JSON body') from exc
+
+    # TikHub reports API-level failures two ways: an HTTP error code (e.g. 402
+    # for insufficient balance) or an error envelope under `detail`/`code`.
+    if isinstance(payload, dict):
+        code = payload.get('code')
+        detail = payload.get('detail')
+        if isinstance(detail, dict):
+            code = detail.get('code', code)
+        if code not in (None, 200):
+            logger.warning(
+                'TikHub video fetch for %s returned code %s',
+                candidate.external_video_id, code,
+            )
+            return None
+
+    return _extract_play_url(payload)
+
+
 def scrape_topic(topic):
     """
     Find new ContentCandidates for one Topic.
@@ -211,24 +298,89 @@ def download_candidate_video(candidate):
     """
     Fetch the mp4 for an approved Candidate and attach it to the record.
 
-    yt-dlp is used rather than the play_addr from the search response: a
-    Candidate can sit in the review queue for days, by which time TikTok's CDN
-    URLs have expired.
+    Primary path is TikHub's video endpoint: it returns a fresh play URL that
+    bypasses the anti-bot wall yt-dlp runs into, and the URL is fetched at
+    download time so it cannot have expired - see ADR 0002.
+
+    yt-dlp is the fallback: it can pick a smaller rendition when the only file
+    TikHub offers is over the size cap.
+    """
+    from .models import KonteninSettings
+
+    config = KonteninSettings.get_solo()
+
+    if _download_via_tikhub(candidate, config):
+        return candidate
+
+    _download_via_ytdlp(candidate, config)
+    return candidate
+
+
+MEDIA_HEADERS = {
+    'User-Agent': (
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ),
+    'Referer': 'https://www.tiktok.com/',
+}
+
+
+def _download_via_tikhub(candidate, config):
+    """Try TikHub's play URL first. Returns True once the mp4 is saved."""
+    try:
+        url = fetch_video_download_url(candidate)
+    except TikHubError as exc:
+        logger.warning(
+            'TikHub fetch failed for %s, falling back to yt-dlp: %s', candidate.id, exc,
+        )
+        return False
+
+    if not url:
+        logger.info('TikHub gave no play URL for %s, falling back to yt-dlp', candidate.id)
+        return False
+
+    max_bytes = config.max_file_size_mb * 1024 * 1024
+
+    try:
+        response = requests.get(url, headers=MEDIA_HEADERS, timeout=120, stream=True)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning(
+            'Downloading TikHub play URL failed for %s, falling back to yt-dlp: %s',
+            candidate.id, exc,
+        )
+        return False
+
+    buf = io.BytesIO()
+    for chunk in response.iter_content(chunk_size=1024 * 1024):
+        buf.write(chunk)
+        if buf.tell() > max_bytes:
+            logger.warning(
+                'TikHub file for %s is over the %sMB cap, falling back to yt-dlp',
+                candidate.id, config.max_file_size_mb,
+            )
+            return False
+
+    candidate.video_file.save(
+        f'{candidate.id}.mp4', ContentFile(buf.getvalue()), save=False,
+    )
+    candidate.file_size_bytes = buf.tell()
+    return True
+
+
+def _download_via_ytdlp(candidate, config):
+    """
+    Fetch the mp4 with yt-dlp.
 
     The stored filename is the Candidate UUID. That is the only thing guarding
     the file, since it is served without authentication - see ADR 0002.
     """
     from yt_dlp import YoutubeDL
 
-    from .models import KonteninSettings
-
-    config = KonteninSettings.get_solo()
-
     with tempfile.TemporaryDirectory() as tmpdir:
-        # With the duration limit off, length is no longer what keeps a video
-        # deliverable - size is. Ask yt-dlp for a rendition known to fit under
-        # the cap first, and only then fall back to "whatever is best", which
-        # is what a long video would otherwise blow the cap with.
+        # Ask yt-dlp for a rendition known to fit under the cap first, then
+        # fall back to "whatever is best", which is what a long video would
+        # otherwise blow the cap with.
         cap = f'{config.max_file_size_mb}M'
         options = {
             'outtmpl': os.path.join(tmpdir, '%(id)s.%(ext)s'),
@@ -242,6 +394,10 @@ def download_candidate_video(candidate):
             'no_warnings': True,
             'noplaylist': True,
         }
+
+        cookie_file = getattr(settings, 'TIKTOK_COOKIE_FILE', '')
+        if cookie_file and os.path.isfile(cookie_file):
+            options['cookiefile'] = cookie_file
 
         try:
             with YoutubeDL(options) as ydl:
@@ -274,8 +430,6 @@ def download_candidate_video(candidate):
             )
 
         candidate.file_size_bytes = size
-
-    return candidate
 
 
 def build_media_url(candidate):
